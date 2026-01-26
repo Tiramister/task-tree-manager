@@ -1,4 +1,4 @@
-import type { Task } from "@/types/task";
+import type { Task, TaskStatus } from "@/types/task";
 import { TaskTreeItem } from "./TaskTreeItem";
 
 interface TaskTreeNodeProps {
@@ -7,6 +7,8 @@ interface TaskTreeNodeProps {
   collapsedIds: Set<string>;
   onToggleCollapse: (id: string) => void;
   onSelectTask: (id: string) => void;
+  onAddChild: (parentId: string) => void;
+  onStatusChange: (taskId: string, status: TaskStatus) => void;
 }
 
 export function TaskTreeNode({
@@ -15,6 +17,8 @@ export function TaskTreeNode({
   collapsedIds,
   onToggleCollapse,
   onSelectTask,
+  onAddChild,
+  onStatusChange,
 }: TaskTreeNodeProps) {
   const children = childrenMap.get(task.id) ?? [];
   const hasChildren = children.length > 0;
@@ -28,6 +32,8 @@ export function TaskTreeNode({
         isCollapsed={isCollapsed}
         onToggleCollapse={() => onToggleCollapse(task.id)}
         onSelect={() => onSelectTask(task.id)}
+        onAddChild={() => onAddChild(task.id)}
+        onStatusChange={(status) => onStatusChange(task.id, status)}
       />
       {hasChildren && !isCollapsed && (
         <div className="ml-4">
@@ -39,6 +45,8 @@ export function TaskTreeNode({
               collapsedIds={collapsedIds}
               onToggleCollapse={onToggleCollapse}
               onSelectTask={onSelectTask}
+              onAddChild={onAddChild}
+              onStatusChange={onStatusChange}
             />
           ))}
         </div>

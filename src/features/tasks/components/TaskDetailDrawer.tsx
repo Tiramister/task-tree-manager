@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import type { TaskStatus } from "@/types/task";
 import { useTaskStore } from "../taskStore";
+import { Button } from "@/components/ui/button";
+import { TaskDeleteDialog } from "./TaskDeleteDialog";
 import {
   Sheet,
   SheetContent,
@@ -40,12 +42,15 @@ export function TaskDetailDrawer({
   const task = useTaskStore((state) =>
     taskId ? state.tasks.find((t) => t.id === taskId) : undefined
   );
+  const tasks = useTaskStore((state) => state.tasks);
   const updateTask = useTaskStore((state) => state.updateTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // タスクが変更されたらフォームを更新
   useEffect(() => {
@@ -56,6 +61,15 @@ export function TaskDetailDrawer({
       setNotes(task.notes ?? "");
     }
   }, [task]);
+
+  const hasChildren = task ? tasks.some((t) => t.parentId === task.id) : false;
+
+  const handleDelete = () => {
+    if (!task) return;
+    deleteTask(task.id);
+    setIsDeleteDialogOpen(false);
+    onOpenChange(false);
+  };
 
   if (!task) {
     return null;
@@ -193,7 +207,26 @@ export function TaskDetailDrawer({
               </div>
             )}
           </div>
+
+          {/* 削除ボタン */}
+          <div className="pt-4 border-t">
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              タスクを削除
+            </Button>
+          </div>
         </div>
+
+        <TaskDeleteDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          taskTitle={task.title}
+          hasChildren={hasChildren}
+          onConfirm={handleDelete}
+        />
       </SheetContent>
     </Sheet>
   );

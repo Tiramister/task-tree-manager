@@ -1,15 +1,20 @@
 import { useMemo, useState } from "react";
-import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useTaskStore } from "../taskStore";
 import { TaskTreeNode } from "./TaskTreeNode";
 import { TaskDetailDrawer } from "./TaskDetailDrawer";
-import type { Task } from "@/types/task";
+import { TaskCreateDialog } from "./TaskCreateDialog";
+import type { Task, TaskStatus } from "@/types/task";
 
 export function TaskTreeView() {
   const tasks = useTaskStore((state) => state.tasks);
+  const updateTask = useTaskStore((state) => state.updateTask);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createParentId, setCreateParentId] = useState<string | undefined>(undefined);
 
   const childrenMap = useMemo(() => {
     const map = new Map<string | undefined, Task[]>();
@@ -58,6 +63,22 @@ export function TaskTreeView() {
     setIsDrawerOpen(true);
   };
 
+  const handleAddChild = (parentId: string) => {
+    setCreateParentId(parentId);
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleCreateDialogOpenChange = (open: boolean) => {
+    setIsCreateDialogOpen(open);
+    if (!open) {
+      setCreateParentId(undefined);
+    }
+  };
+
+  const handleStatusChange = (taskId: string, status: TaskStatus) => {
+    updateTask(taskId, { status });
+  };
+
   const handleDrawerOpenChange = (open: boolean) => {
     setIsDrawerOpen(open);
     if (!open) {
@@ -67,8 +88,17 @@ export function TaskTreeView() {
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
-        タスクがありません
+      <div className="text-center py-8">
+        <p className="text-gray-500 mb-4">タスクがありません</p>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="w-4 h-4" />
+          新規タスク
+        </Button>
+        <TaskCreateDialog
+          open={isCreateDialogOpen}
+          onOpenChange={handleCreateDialogOpenChange}
+          parentId={createParentId}
+        />
       </div>
     );
   }
@@ -76,20 +106,18 @@ export function TaskTreeView() {
   return (
     <div>
       <div className="flex gap-2 mb-4">
-        <button
-          onClick={handleCollapseAll}
-          className="flex items-center gap-1 px-3 py-1 text-sm border rounded hover:bg-gray-50"
-        >
+        <Button variant="outline" size="sm" onClick={handleCollapseAll}>
           <ChevronsDownUp className="w-4 h-4" />
           全て折り畳む
-        </button>
-        <button
-          onClick={handleExpandAll}
-          className="flex items-center gap-1 px-3 py-1 text-sm border rounded hover:bg-gray-50"
-        >
+        </Button>
+        <Button variant="outline" size="sm" onClick={handleExpandAll}>
           <ChevronsUpDown className="w-4 h-4" />
           全て展開
-        </button>
+        </Button>
+        <Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="w-4 h-4" />
+          新規タスク
+        </Button>
       </div>
       <div>
         {rootTasks.map((task) => (
@@ -100,6 +128,8 @@ export function TaskTreeView() {
             collapsedIds={collapsedIds}
             onToggleCollapse={handleToggleCollapse}
             onSelectTask={handleSelectTask}
+            onAddChild={handleAddChild}
+            onStatusChange={handleStatusChange}
           />
         ))}
       </div>
@@ -108,6 +138,12 @@ export function TaskTreeView() {
         taskId={selectedTaskId}
         open={isDrawerOpen}
         onOpenChange={handleDrawerOpenChange}
+      />
+
+      <TaskCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={handleCreateDialogOpenChange}
+        parentId={createParentId}
       />
     </div>
   );

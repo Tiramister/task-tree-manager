@@ -1,6 +1,13 @@
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { useRef } from "react";
+import { ChevronRight, ChevronDown, MoreHorizontal } from "lucide-react";
 import type { Task, TaskStatus } from "@/types/task";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const statusLabels: Record<TaskStatus, string> = {
   not_started: "未着手",
@@ -16,12 +23,16 @@ const statusColors: Record<TaskStatus, string> = {
   completed: "bg-green-100 text-green-700",
 };
 
+const allStatuses: TaskStatus[] = ["not_started", "in_progress", "waiting", "completed"];
+
 interface TaskTreeItemProps {
   task: Task;
   hasChildren: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onSelect: () => void;
+  onAddChild: () => void;
+  onStatusChange: (status: TaskStatus) => void;
 }
 
 export function TaskTreeItem({
@@ -30,11 +41,31 @@ export function TaskTreeItem({
   isCollapsed,
   onToggleCollapse,
   onSelect,
+  onAddChild,
+  onStatusChange,
 }: TaskTreeItemProps) {
+  const dropdownOpenRef = useRef(false);
+
+  const handleRowClick = () => {
+    if (dropdownOpenRef.current) return;
+    onSelect();
+  };
+
+  const handleDropdownOpenChange = (open: boolean) => {
+    dropdownOpenRef.current = open;
+    if (!open) {
+      // メニューが閉じた直後のクリックイベントを無視するため少し遅延
+      setTimeout(() => {
+        dropdownOpenRef.current = false;
+      }, 100);
+      dropdownOpenRef.current = true;
+    }
+  };
+
   return (
     <div
       className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer"
-      onClick={onSelect}
+      onClick={handleRowClick}
     >
       <button
         onClick={(e) => {
@@ -55,14 +86,56 @@ export function TaskTreeItem({
           ))}
       </button>
       <span className="flex-1 truncate">{task.title}</span>
-      <span
-        className={cn(
-          "text-xs px-2 py-0.5 rounded",
-          statusColors[task.status]
-        )}
-      >
-        {statusLabels[task.status]}
-      </span>
+      <DropdownMenu onOpenChange={handleDropdownOpenChange}>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className={cn(
+              "text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80",
+              statusColors[task.status]
+            )}
+          >
+            {statusLabels[task.status]}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {allStatuses.map((status) => (
+            <DropdownMenuItem
+              key={status}
+              onClick={() => {
+                if (status !== task.status) {
+                  onStatusChange(status);
+                }
+              }}
+            >
+              <span
+                className={cn(
+                  "text-xs px-2 py-0.5 rounded",
+                  statusColors[status]
+                )}
+              >
+                {statusLabels[status]}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DropdownMenu onOpenChange={handleDropdownOpenChange}>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200"
+            aria-label="アクション"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onAddChild}>
+            子タスクを追加
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
