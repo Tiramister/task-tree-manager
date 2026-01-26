@@ -6,6 +6,7 @@ interface TaskTreeNodeProps {
   childrenMap: Map<string | undefined, Task[]>;
   collapsedIds: Set<string>;
   onToggleCollapse: (id: string) => void;
+  onSelectTask: (id: string) => void;
 }
 
 export function TaskTreeNode({
@@ -13,6 +14,7 @@ export function TaskTreeNode({
   childrenMap,
   collapsedIds,
   onToggleCollapse,
+  onSelectTask,
 }: TaskTreeNodeProps) {
   const children = childrenMap.get(task.id) ?? [];
   const hasChildren = children.length > 0;
@@ -25,6 +27,7 @@ export function TaskTreeNode({
         hasChildren={hasChildren}
         isCollapsed={isCollapsed}
         onToggleCollapse={() => onToggleCollapse(task.id)}
+        onSelect={() => onSelectTask(task.id)}
       />
       {hasChildren && !isCollapsed && (
         <div className="ml-4">
@@ -35,6 +38,7 @@ export function TaskTreeNode({
               childrenMap={childrenMap}
               collapsedIds={collapsedIds}
               onToggleCollapse={onToggleCollapse}
+              onSelectTask={onSelectTask}
             />
           ))}
         </div>

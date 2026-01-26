@@ -2,11 +2,14 @@ import { useMemo, useState } from "react";
 import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import { useTaskStore } from "../taskStore";
 import { TaskTreeNode } from "./TaskTreeNode";
+import { TaskDetailDrawer } from "./TaskDetailDrawer";
 import type { Task } from "@/types/task";
 
 export function TaskTreeView() {
   const tasks = useTaskStore((state) => state.tasks);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const childrenMap = useMemo(() => {
     const map = new Map<string | undefined, Task[]>();
@@ -50,6 +53,18 @@ export function TaskTreeView() {
     setCollapsedIds(new Set());
   };
 
+  const handleSelectTask = (id: string) => {
+    setSelectedTaskId(id);
+    setIsDrawerOpen(true);
+  };
+
+  const handleDrawerOpenChange = (open: boolean) => {
+    setIsDrawerOpen(open);
+    if (!open) {
+      setSelectedTaskId(null);
+    }
+  };
+
   if (tasks.length === 0) {
     return (
       <div className="text-center text-gray-500 py-8">
@@ -84,9 +99,16 @@ export function TaskTreeView() {
             childrenMap={childrenMap}
             collapsedIds={collapsedIds}
             onToggleCollapse={handleToggleCollapse}
+            onSelectTask={handleSelectTask}
           />
         ))}
       </div>
+
+      <TaskDetailDrawer
+        taskId={selectedTaskId}
+        open={isDrawerOpen}
+        onOpenChange={handleDrawerOpenChange}
+      />
     </div>
   );
 }

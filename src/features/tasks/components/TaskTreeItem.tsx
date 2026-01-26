@@ -21,6 +21,7 @@ interface TaskTreeItemProps {
   hasChildren: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onSelect: () => void;
 }
 
 export function TaskTreeItem({
@@ -28,11 +29,18 @@ export function TaskTreeItem({
   hasChildren,
   isCollapsed,
   onToggleCollapse,
+  onSelect,
 }: TaskTreeItemProps) {
   return (
-    <div className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 rounded">
+    <div
+      className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer"
+      onClick={onSelect}
+    >
       <button
-        onClick={onToggleCollapse}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggleCollapse();
+        }}
         className={cn(
           "w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200",
           !hasChildren && "invisible"
