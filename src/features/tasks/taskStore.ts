@@ -16,6 +16,8 @@ interface TaskState {
 	getTaskById: (id: string) => Task | undefined;
 	getCompletedByDate: () => CompletedGroup[];
 	getAncestorIds: (taskIds: string[]) => Set<string>;
+	exportTasks: () => string;
+	importTasks: (tasks: Task[]) => void;
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -110,6 +112,14 @@ export const useTaskStore = create<TaskState>()(
 				return Array.from(grouped.entries())
 					.sort(([a], [b]) => b.localeCompare(a))
 					.map(([date, taskIds]) => ({ date, taskIds }));
+			},
+
+			exportTasks: () => {
+				return JSON.stringify(get().tasks);
+			},
+
+			importTasks: (tasks) => {
+				set({ tasks });
 			},
 
 			getAncestorIds: (taskIds) => {
