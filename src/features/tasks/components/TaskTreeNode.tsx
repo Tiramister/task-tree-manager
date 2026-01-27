@@ -36,7 +36,7 @@ export function TaskTreeNode({
         onStatusChange={(status) => onStatusChange(task.id, status)}
       />
       {hasChildren && !isCollapsed && (
-        <div className="ml-4">
+        <div className="ml-4 sm:ml-6">
           {children.map((child) => (
             <TaskTreeNode
               key={child.id}

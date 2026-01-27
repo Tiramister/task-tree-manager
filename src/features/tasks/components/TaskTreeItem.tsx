@@ -64,7 +64,7 @@ export function TaskTreeItem({
 
   return (
     <div
-      className="flex items-center gap-2 py-1 px-2 hover:bg-gray-50 rounded cursor-pointer"
+      className="group flex items-center gap-2 py-1 px-2 min-h-[44px] [@media(hover:hover)]:hover:bg-gray-50 rounded cursor-pointer"
       onClick={handleRowClick}
     >
       <button
@@ -73,7 +73,7 @@ export function TaskTreeItem({
           onToggleCollapse();
         }}
         className={cn(
-          "w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200",
+          "w-11 h-11 flex items-center justify-center rounded [@media(hover:hover)]:hover:bg-gray-200",
           !hasChildren && "invisible"
         )}
         aria-label={isCollapsed ? "展開" : "折り畳む"}
@@ -91,7 +91,7 @@ export function TaskTreeItem({
           <button
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "text-xs px-2 py-0.5 rounded cursor-pointer hover:opacity-80",
+              "text-xs px-2 py-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded cursor-pointer hover:opacity-80",
               statusColors[task.status]
             )}
           >
@@ -124,7 +124,7 @@ export function TaskTreeItem({
         <DropdownMenuTrigger asChild>
           <button
             onClick={(e) => e.stopPropagation()}
-            className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200"
+            className="w-11 h-11 flex items-center justify-center rounded [@media(hover:hover)]:hover:bg-gray-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
             aria-label="アクション"
           >
             <MoreHorizontal className="w-4 h-4" />

@@ -121,13 +121,13 @@ export function TaskDetailDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="overflow-y-auto">
+      <SheetContent className="overflow-y-auto w-full sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>タスク詳細</SheetTitle>
           <SheetDescription>タスクの詳細を表示・編集します</SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6 p-4">
+        <div className="space-y-6 p-4 text-base">
           {/* タイトル */}
           <div className="space-y-2">
             <Label htmlFor="title">タイトル</Label>
