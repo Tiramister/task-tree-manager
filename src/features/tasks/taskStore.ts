@@ -177,24 +177,6 @@ export const useTaskStore = create<TaskState>()(
 		}),
 		{
 			name: "task-tree-storage",
-			version: 1,
-			migrate: (persisted, version) => {
-				if (version === 0) {
-					const state = persisted as {
-						tasks: (Task & { sortOrder?: number })[];
-					};
-					const siblingCounters = new Map<string | undefined, number>();
-					const sorted = [...state.tasks].sort((a, b) =>
-						a.createdAt.localeCompare(b.createdAt),
-					);
-					for (const task of sorted) {
-						const count = siblingCounters.get(task.parentId) ?? 0;
-						task.sortOrder = count;
-						siblingCounters.set(task.parentId, count + 1);
-					}
-				}
-				return persisted as TaskState;
-			},
 		},
 	),
 );
