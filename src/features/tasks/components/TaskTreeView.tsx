@@ -132,7 +132,7 @@ export function TaskTreeView() {
 
 	return (
 		<div>
-			<div className="flex gap-2 mb-4">
+			<div className="flex flex-wrap gap-2 mb-4">
 				<Button variant="outline" size="sm" onClick={handleCollapseAll}>
 					<ChevronsDownUp className="w-4 h-4" />
 					全て折り畳む
