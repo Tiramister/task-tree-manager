@@ -10,6 +10,7 @@ export interface Task {
 	title: string;
 	status: TaskStatus;
 	createdAt: string; // ISO 8601
+	sortOrder: number;
 
 	// オプショナルフィールド
 	description?: string;

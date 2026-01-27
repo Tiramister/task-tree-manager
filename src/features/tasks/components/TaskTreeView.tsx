@@ -21,11 +21,14 @@ export function TaskTreeView() {
 
 	const childrenMap = useMemo(() => {
 		const map = new Map<string | undefined, Task[]>();
-		tasks.forEach((task) => {
+		for (const task of tasks) {
 			const children = map.get(task.parentId) ?? [];
 			children.push(task);
 			map.set(task.parentId, children);
-		});
+		}
+		for (const children of map.values()) {
+			children.sort((a, b) => b.sortOrder - a.sortOrder);
+		}
 		return map;
 	}, [tasks]);
 

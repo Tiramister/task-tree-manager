@@ -38,6 +38,8 @@ interface TaskTreeItemProps {
 	onSelect: () => void;
 	onAddChild: () => void;
 	onStatusChange: (status: TaskStatus) => void;
+	onMoveUp: () => void;
+	onMoveDown: () => void;
 	highlighted?: boolean;
 }
 
@@ -49,6 +51,8 @@ export function TaskTreeItem({
 	onSelect,
 	onAddChild,
 	onStatusChange,
+	onMoveUp,
+	onMoveDown,
 	highlighted,
 }: TaskTreeItemProps) {
 	const dropdownOpenRef = useRef(false);
@@ -141,6 +145,8 @@ export function TaskTreeItem({
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end">
+					<DropdownMenuItem onClick={onMoveUp}>上に移動</DropdownMenuItem>
+					<DropdownMenuItem onClick={onMoveDown}>下に移動</DropdownMenuItem>
 					<DropdownMenuItem onClick={onAddChild}>
 						子タスクを追加
 					</DropdownMenuItem>

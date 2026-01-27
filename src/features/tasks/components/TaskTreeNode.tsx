@@ -1,4 +1,5 @@
 import type { Task, TaskStatus } from "@/types/task";
+import { useTaskStore } from "../taskStore";
 import { TaskTreeItem } from "./TaskTreeItem";
 
 interface TaskTreeNodeProps {
@@ -24,6 +25,7 @@ export function TaskTreeNode({
 	highlightedIds,
 	filterFn,
 }: TaskTreeNodeProps) {
+	const moveTask = useTaskStore((state) => state.moveTask);
 	const allChildren = childrenMap.get(task.id) ?? [];
 	const children = filterFn
 		? allChildren.filter((child) => filterFn(child.id))
@@ -41,6 +43,8 @@ export function TaskTreeNode({
 				onSelect={() => onSelectTask(task.id)}
 				onAddChild={() => onAddChild(task.id)}
 				onStatusChange={(status) => onStatusChange(task.id, status)}
+				onMoveUp={() => moveTask(task.id, "up")}
+				onMoveDown={() => moveTask(task.id, "down")}
 				highlighted={highlightedIds?.has(task.id)}
 			/>
 			{hasChildren && !isCollapsed && (

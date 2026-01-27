@@ -13,6 +13,7 @@ interface TaskState {
 	addTask: (input: CreateTaskInput) => Task;
 	updateTask: (id: string, input: UpdateTaskInput) => void;
 	deleteTask: (id: string) => void;
+	moveTask: (id: string, direction: "up" | "down") => void;
 	getTaskById: (id: string) => Task | undefined;
 	getCompletedByDate: () => CompletedGroup[];
 	getAncestorIds: (taskIds: string[]) => Set<string>;
@@ -26,11 +27,20 @@ export const useTaskStore = create<TaskState>()(
 			tasks: sampleTasks,
 
 			addTask: (input) => {
+				const siblings = get().tasks.filter(
+					(t) => t.parentId === input.parentId,
+				);
+				const maxSortOrder =
+					siblings.length > 0
+						? Math.max(...siblings.map((t) => t.sortOrder))
+						: -1;
+
 				const newTask: Task = {
 					id: crypto.randomUUID(),
 					title: input.title,
 					status: "not_started",
 					createdAt: new Date().toISOString(),
+					sortOrder: maxSortOrder + 1,
 					description: input.description,
 					dueDate: input.dueDate,
 					notes: input.notes,
@@ -94,6 +104,31 @@ export const useTaskStore = create<TaskState>()(
 				});
 			},
 
+			moveTask: (id, direction) => {
+				const tasks = get().tasks;
+				const target = tasks.find((t) => t.id === id);
+				if (!target) return;
+
+				const siblings = tasks
+					.filter((t) => t.parentId === target.parentId)
+					.sort((a, b) => b.sortOrder - a.sortOrder);
+
+				const idx = siblings.findIndex((t) => t.id === id);
+				const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+				if (swapIdx < 0 || swapIdx >= siblings.length) return;
+
+				const swapTarget = siblings[swapIdx];
+				set((state) => ({
+					tasks: state.tasks.map((t) => {
+						if (t.id === target.id)
+							return { ...t, sortOrder: swapTarget.sortOrder };
+						if (t.id === swapTarget.id)
+							return { ...t, sortOrder: target.sortOrder };
+						return t;
+					}),
+				}));
+			},
+
 			getTaskById: (id) => {
 				return get().tasks.find((task) => task.id === id);
 			},
@@ -142,6 +177,24 @@ export const useTaskStore = create<TaskState>()(
 		}),
 		{
 			name: "task-tree-storage",
+			version: 1,
+			migrate: (persisted, version) => {
+				if (version === 0) {
+					const state = persisted as {
+						tasks: (Task & { sortOrder?: number })[];
+					};
+					const siblingCounters = new Map<string | undefined, number>();
+					const sorted = [...state.tasks].sort((a, b) =>
+						a.createdAt.localeCompare(b.createdAt),
+					);
+					for (const task of sorted) {
+						const count = siblingCounters.get(task.parentId) ?? 0;
+						task.sortOrder = count;
+						siblingCounters.set(task.parentId, count + 1);
+					}
+				}
+				return persisted as TaskState;
+			},
 		},
 	),
 );
