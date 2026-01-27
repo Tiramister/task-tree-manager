@@ -122,7 +122,10 @@ export function TaskDetailDrawer({
 
 	return (
 		<Sheet open={open} onOpenChange={onOpenChange}>
-			<SheetContent className="overflow-y-auto w-full sm:max-w-lg">
+			<SheetContent
+				className="overflow-y-auto w-full sm:max-w-lg"
+				onOpenAutoFocus={(e) => e.preventDefault()}
+			>
 				<SheetHeader>
 					<SheetTitle>タスク詳細</SheetTitle>
 					<SheetDescription>タスクの詳細を表示・編集します</SheetDescription>
