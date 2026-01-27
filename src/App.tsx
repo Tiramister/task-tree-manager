@@ -66,6 +66,20 @@ function App() {
 										<img src="/import.png" alt="" width={16} height={16} />
 										インポート
 									</button>
+									<button
+										type="button"
+										className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+										onClick={() => {
+											setMenuOpen(false);
+											window.open(
+												"https://github.com/Tiramister/task-tree-manager",
+												"_blank",
+											);
+										}}
+									>
+										<img src="/github.svg" alt="" width={16} height={16} />
+										GitHub
+									</button>
 								</div>
 							)}
 						</div>
