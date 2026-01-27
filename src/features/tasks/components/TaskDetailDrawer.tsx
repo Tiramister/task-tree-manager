@@ -19,6 +19,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { TaskStatus } from "@/types/task";
 import { useTaskStore } from "../taskStore";
+import { DescendantTaskTree } from "./DescendantTaskTree";
 import { TaskDeleteDialog } from "./TaskDeleteDialog";
 
 const statusLabels: Record<TaskStatus, string> = {
@@ -192,6 +193,9 @@ export function TaskDetailDrawer({
 							rows={5}
 						/>
 					</div>
+
+					{/* 子タスク */}
+					<DescendantTaskTree parentId={task.id} />
 
 					{/* 読み取り専用情報 */}
 					<div className="space-y-4 pt-4 border-t">
