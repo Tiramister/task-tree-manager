@@ -1,4 +1,4 @@
-import { ChevronsDownUp, ChevronsUpDown, Plus } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown, Filter, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Task, TaskStatus } from "@/types/task";
@@ -17,6 +17,7 @@ export function TaskTreeView() {
 	const [createParentId, setCreateParentId] = useState<string | undefined>(
 		undefined,
 	);
+	const [filterIncomplete, setFilterIncomplete] = useState(false);
 
 	const childrenMap = useMemo(() => {
 		const map = new Map<string | undefined, Task[]>();
@@ -29,6 +30,27 @@ export function TaskTreeView() {
 	}, [tasks]);
 
 	const rootTasks = childrenMap.get(undefined) ?? [];
+
+	const hasIncompleteDescendant = useMemo(() => {
+		const cache = new Map<string, boolean>();
+		const check = (taskId: string): boolean => {
+			if (cache.has(taskId)) return cache.get(taskId)!;
+			const task = tasks.find((t) => t.id === taskId);
+			if (!task) return false;
+			const children = childrenMap.get(taskId) ?? [];
+			const result =
+				task.status !== "completed" ||
+				children.some((child) => check(child.id));
+			cache.set(taskId, result);
+			return result;
+		};
+		return check;
+	}, [tasks, childrenMap]);
+
+	const filteredRootTasks = useMemo(() => {
+		if (!filterIncomplete) return rootTasks;
+		return rootTasks.filter((task) => hasIncompleteDescendant(task.id));
+	}, [rootTasks, filterIncomplete, hasIncompleteDescendant]);
 
 	const parentIds = useMemo(() => {
 		const ids = new Set<string>();
@@ -119,13 +141,21 @@ export function TaskTreeView() {
 					<ChevronsUpDown className="w-4 h-4" />
 					全て展開
 				</Button>
+				<Button
+					variant={filterIncomplete ? "default" : "outline"}
+					size="sm"
+					onClick={() => setFilterIncomplete((prev) => !prev)}
+				>
+					<Filter className="w-4 h-4" />
+					未完了のみ
+				</Button>
 				<Button size="sm" onClick={() => setIsCreateDialogOpen(true)}>
 					<Plus className="w-4 h-4" />
 					新規タスク
 				</Button>
 			</div>
 			<div className="bg-white rounded-lg border shadow-sm divide-y">
-				{rootTasks.map((task) => (
+				{filteredRootTasks.map((task) => (
 					<TaskTreeNode
 						key={task.id}
 						task={task}
@@ -135,6 +165,7 @@ export function TaskTreeView() {
 						onSelectTask={handleSelectTask}
 						onAddChild={handleAddChild}
 						onStatusChange={handleStatusChange}
+						filterFn={filterIncomplete ? hasIncompleteDescendant : undefined}
 					/>
 				))}
 			</div>

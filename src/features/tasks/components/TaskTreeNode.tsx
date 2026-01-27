@@ -10,6 +10,7 @@ interface TaskTreeNodeProps {
 	onAddChild: (parentId: string) => void;
 	onStatusChange: (taskId: string, status: TaskStatus) => void;
 	highlightedIds?: Set<string>;
+	filterFn?: (taskId: string) => boolean;
 }
 
 export function TaskTreeNode({
@@ -21,8 +22,12 @@ export function TaskTreeNode({
 	onAddChild,
 	onStatusChange,
 	highlightedIds,
+	filterFn,
 }: TaskTreeNodeProps) {
-	const children = childrenMap.get(task.id) ?? [];
+	const allChildren = childrenMap.get(task.id) ?? [];
+	const children = filterFn
+		? allChildren.filter((child) => filterFn(child.id))
+		: allChildren;
 	const hasChildren = children.length > 0;
 	const isCollapsed = collapsedIds.has(task.id);
 
@@ -51,6 +56,7 @@ export function TaskTreeNode({
 							onAddChild={onAddChild}
 							onStatusChange={onStatusChange}
 							highlightedIds={highlightedIds}
+							filterFn={filterFn}
 						/>
 					))}
 				</div>
