@@ -63,7 +63,7 @@ export function TaskCreateDialog({
 					value={title}
 					onChange={(e) => setTitle(e.target.value)}
 					onKeyDown={(e) => {
-						if (e.key === "Enter") handleCreate();
+						if (e.key === "Enter" && !e.nativeEvent.isComposing) handleCreate();
 					}}
 					autoFocus
 				/>

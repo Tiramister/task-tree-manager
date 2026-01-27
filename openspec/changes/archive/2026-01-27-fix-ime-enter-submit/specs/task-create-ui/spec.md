@@ -1,25 +1,4 @@
-# task-create-ui Specification
-
-## Purpose
-TBD - created by archiving change phase5-task-operations. Update Purpose after archive.
-## Requirements
-### Requirement: ルートタスク作成ボタン
-
-ツリービューの上部に「新規タスク」ボタンを表示しなければならない（SHALL）。ボタンをクリックするとタスク作成ダイアログが開く。
-
-#### Scenario: ルートタスクを作成する
-
-- **WHEN** ユーザーが「新規タスク」ボタンをクリックする
-- **THEN** タスク作成ダイアログが開く
-
-### Requirement: 子タスク作成メニュー
-
-各タスクアイテムにアクションメニュー（三点リーダーアイコン）を表示しなければならない（SHALL）。メニューから「子タスクを追加」を選択できる。
-
-#### Scenario: 子タスクを作成する
-
-- **WHEN** ユーザーがタスクの三点リーダーをクリックし、「子タスクを追加」を選択する
-- **THEN** 親タスクIDが設定された状態でタスク作成ダイアログが開く
+## MODIFIED Requirements
 
 ### Requirement: タスク作成ダイアログ
 
@@ -49,4 +28,3 @@ TBD - created by archiving change phase5-task-operations. Update Purpose after a
 
 - **WHEN** ユーザーが IME 変換を確定した後に Enter キーを押す
 - **THEN** タスクが作成される
-
