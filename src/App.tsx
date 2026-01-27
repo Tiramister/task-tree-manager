@@ -52,16 +52,18 @@ function App() {
 								<div className="absolute right-0 mt-1 w-48 bg-white border rounded-md shadow-lg z-10">
 									<button
 										type="button"
-										className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+										className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer flex items-center gap-2"
 										onClick={handleExport}
 									>
+										<img src="/export.png" alt="" width={16} height={16} />
 										エクスポート
 									</button>
 									<button
 										type="button"
-										className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+										className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer flex items-center gap-2"
 										onClick={handleImport}
 									>
+										<img src="/import.png" alt="" width={16} height={16} />
 										インポート
 									</button>
 								</div>
