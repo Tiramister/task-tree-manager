@@ -17,7 +17,7 @@ export function TaskTreeView() {
 	const [createParentId, setCreateParentId] = useState<string | undefined>(
 		undefined,
 	);
-	const [filterIncomplete, setFilterIncomplete] = useState(false);
+	const [filterIncomplete, setFilterIncomplete] = useState(true);
 
 	const childrenMap = useMemo(() => {
 		const map = new Map<string | undefined, Task[]>();
