@@ -3,12 +3,19 @@ import { persist } from "zustand/middleware";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "@/types/task";
 import { sampleTasks } from "./sampleData";
 
+interface CompletedGroup {
+	date: string;
+	taskIds: string[];
+}
+
 interface TaskState {
 	tasks: Task[];
 	addTask: (input: CreateTaskInput) => Task;
 	updateTask: (id: string, input: UpdateTaskInput) => void;
 	deleteTask: (id: string) => void;
 	getTaskById: (id: string) => Task | undefined;
+	getCompletedByDate: () => CompletedGroup[];
+	getAncestorIds: (taskIds: string[]) => Set<string>;
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -87,6 +94,40 @@ export const useTaskStore = create<TaskState>()(
 
 			getTaskById: (id) => {
 				return get().tasks.find((task) => task.id === id);
+			},
+
+			getCompletedByDate: () => {
+				const tasks = get().tasks;
+				const grouped = new Map<string, string[]>();
+				for (const task of tasks) {
+					if (task.status === "completed" && task.completedAt) {
+						const date = new Date(task.completedAt).toLocaleDateString("sv-SE");
+						const ids = grouped.get(date) ?? [];
+						ids.push(task.id);
+						grouped.set(date, ids);
+					}
+				}
+				return Array.from(grouped.entries())
+					.sort(([a], [b]) => b.localeCompare(a))
+					.map(([date, taskIds]) => ({ date, taskIds }));
+			},
+
+			getAncestorIds: (taskIds) => {
+				const tasks = get().tasks;
+				const taskMap = new Map<string, Task>();
+				for (const t of tasks) {
+					taskMap.set(t.id, t);
+				}
+				const ancestors = new Set<string>();
+				for (const id of taskIds) {
+					let current = taskMap.get(id);
+					while (current?.parentId) {
+						if (ancestors.has(current.parentId)) break;
+						ancestors.add(current.parentId);
+						current = taskMap.get(current.parentId);
+					}
+				}
+				return ancestors;
 			},
 		}),
 		{

@@ -38,6 +38,7 @@ interface TaskTreeItemProps {
 	onSelect: () => void;
 	onAddChild: () => void;
 	onStatusChange: (status: TaskStatus) => void;
+	highlighted?: boolean;
 }
 
 export function TaskTreeItem({
@@ -48,6 +49,7 @@ export function TaskTreeItem({
 	onSelect,
 	onAddChild,
 	onStatusChange,
+	highlighted,
 }: TaskTreeItemProps) {
 	const dropdownOpenRef = useRef(false);
 
@@ -69,7 +71,10 @@ export function TaskTreeItem({
 
 	return (
 		<div
-			className="group flex items-center gap-2 py-1 px-2 min-h-[44px] [@media(hover:hover)]:hover:bg-gray-50 rounded cursor-pointer"
+			className={cn(
+				"group flex items-center gap-2 py-1 px-2 min-h-[44px] [@media(hover:hover)]:hover:bg-gray-50 rounded cursor-pointer",
+				highlighted && "bg-green-50",
+			)}
 			onClick={handleRowClick}
 		>
 			<button
