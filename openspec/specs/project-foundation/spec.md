@@ -37,11 +37,15 @@
 - **THEN** `components/`, `features/`, `hooks/`, `lib/`, `types/` ディレクトリが存在する
 
 ### Requirement: Favicon 設定
-アプリケーションは `assets/icons/favicon.ico` をファビコンとして表示しなければならない（SHALL）。
+アプリケーションは `assets/icons/favicon.ico` をファビコンとして表示しなければならない（SHALL）。また、`theme-color` メタタグを設定しなければならない（SHALL）。
 
 #### Scenario: ブラウザタブにファビコンが表示される
 - **WHEN** ユーザーがアプリケーションをブラウザで開く
 - **THEN** ブラウザタブに `assets/icons/favicon.ico` のアイコンが表示される
+
+#### Scenario: テーマカラーが設定される
+- **WHEN** `index.html` の `<head>` を確認する
+- **THEN** `<meta name="theme-color">` タグが存在する
 
 ### Requirement: Node.js バージョン管理
 プロジェクトは mise で Node.js のバージョンを管理する。
