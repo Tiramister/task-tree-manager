@@ -88,8 +88,9 @@ export function TaskTreeView() {
 
   if (tasks.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500 mb-4">タスクがありません</p>
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <p className="text-gray-400 text-lg mb-2">タスクがありません</p>
+        <p className="text-gray-400 text-sm mb-6">最初のタスクを作成して始めましょう</p>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="w-4 h-4" />
           新規タスク
@@ -119,7 +120,7 @@ export function TaskTreeView() {
           新規タスク
         </Button>
       </div>
-      <div>
+      <div className="bg-white rounded-lg border shadow-sm divide-y">
         {rootTasks.map((task) => (
           <TaskTreeNode
             key={task.id}

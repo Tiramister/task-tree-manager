@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Task, CreateTaskInput, UpdateTaskInput } from "@/types/task";
+import { sampleTasks } from "./sampleData";
 
 interface TaskState {
   tasks: Task[];
@@ -13,7 +14,7 @@ interface TaskState {
 export const useTaskStore = create<TaskState>()(
   persist(
     (set, get) => ({
-      tasks: [],
+      tasks: sampleTasks,
 
       addTask: (input) => {
         const newTask: Task = {
