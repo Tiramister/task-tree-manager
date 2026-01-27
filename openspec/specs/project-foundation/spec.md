@@ -36,6 +36,13 @@
 - **WHEN** `src/` ディレクトリを確認する
 - **THEN** `components/`, `features/`, `hooks/`, `lib/`, `types/` ディレクトリが存在する
 
+### Requirement: Favicon 設定
+アプリケーションは `assets/icons/favicon.ico` をファビコンとして表示しなければならない（SHALL）。
+
+#### Scenario: ブラウザタブにファビコンが表示される
+- **WHEN** ユーザーがアプリケーションをブラウザで開く
+- **THEN** ブラウザタブに `assets/icons/favicon.ico` のアイコンが表示される
+
 ### Requirement: Node.js バージョン管理
 プロジェクトは mise で Node.js のバージョンを管理する。
 
