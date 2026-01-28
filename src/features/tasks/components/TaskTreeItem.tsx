@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { Task, TaskStatus } from "@/types/task";
+import { getDeadlineHighlightClass } from "../getDeadlineHighlightClass";
 
 const statusLabels: Record<TaskStatus, string> = {
 	not_started: "未着手",
@@ -73,11 +74,13 @@ export function TaskTreeItem({
 		}
 	};
 
+	const deadlineClass = getDeadlineHighlightClass(task.dueDate, task.status);
+
 	return (
 		<div
 			className={cn(
 				"group flex items-center gap-2 py-1 px-2 min-h-[44px] [@media(hover:hover)]:hover:bg-gray-50 rounded cursor-pointer",
-				highlighted && "bg-green-50",
+				highlighted ? "bg-green-50" : deadlineClass,
 			)}
 			onClick={handleRowClick}
 		>
