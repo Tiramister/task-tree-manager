@@ -35,7 +35,7 @@ export function DescendantTaskNode({
 
 			{isExpanded && (
 				<div className="ml-6 mt-1">
-					<p className="text-sm text-muted-foreground whitespace-pre-wrap px-2 py-1">
+					<p className="text-sm text-muted-foreground whitespace-pre-wrap break-words px-2 py-1">
 						{task.notes || "作業記録なし"}
 					</p>
 
