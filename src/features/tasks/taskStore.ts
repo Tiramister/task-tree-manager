@@ -10,6 +10,7 @@ interface CompletedGroup {
 
 interface TaskState {
 	tasks: Task[];
+	collapsedIds: string[];
 	addTask: (input: CreateTaskInput) => Task;
 	updateTask: (id: string, input: UpdateTaskInput) => void;
 	deleteTask: (id: string) => void;
@@ -19,12 +20,16 @@ interface TaskState {
 	getAncestorIds: (taskIds: string[]) => Set<string>;
 	exportTasks: () => string;
 	importTasks: (tasks: Task[]) => void;
+	toggleCollapse: (id: string) => void;
+	collapseAll: (ids: string[]) => void;
+	expandAll: () => void;
 }
 
 export const useTaskStore = create<TaskState>()(
 	persist(
 		(set, get) => ({
 			tasks: sampleTasks,
+			collapsedIds: [],
 
 			addTask: (input) => {
 				const siblings = get().tasks.filter(
@@ -100,6 +105,9 @@ export const useTaskStore = create<TaskState>()(
 					]);
 					return {
 						tasks: state.tasks.filter((task) => !idsToDelete.has(task.id)),
+						collapsedIds: state.collapsedIds.filter(
+							(cid) => !idsToDelete.has(cid),
+						),
 					};
 				});
 			},
@@ -155,6 +163,26 @@ export const useTaskStore = create<TaskState>()(
 
 			importTasks: (tasks) => {
 				set({ tasks });
+			},
+
+			toggleCollapse: (id) => {
+				set((state) => {
+					const index = state.collapsedIds.indexOf(id);
+					if (index >= 0) {
+						return {
+							collapsedIds: state.collapsedIds.filter((cid) => cid !== id),
+						};
+					}
+					return { collapsedIds: [...state.collapsedIds, id] };
+				});
+			},
+
+			collapseAll: (ids) => {
+				set({ collapsedIds: ids });
+			},
+
+			expandAll: () => {
+				set({ collapsedIds: [] });
 			},
 
 			getAncestorIds: (taskIds) => {

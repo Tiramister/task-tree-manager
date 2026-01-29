@@ -1,5 +1,5 @@
 import { ChevronsDownUp, ChevronsUpDown, Filter, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Task, TaskStatus } from "@/types/task";
 import { useTaskStore } from "../taskStore";
@@ -10,7 +10,14 @@ import { TaskTreeNode } from "./TaskTreeNode";
 export function TaskTreeView() {
 	const tasks = useTaskStore((state) => state.tasks);
 	const updateTask = useTaskStore((state) => state.updateTask);
-	const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+	const collapsedIdsArray = useTaskStore((state) => state.collapsedIds);
+	const toggleCollapse = useTaskStore((state) => state.toggleCollapse);
+	const collapseAll = useTaskStore((state) => state.collapseAll);
+	const expandAll = useTaskStore((state) => state.expandAll);
+	const collapsedIds = useMemo(
+		() => new Set(collapsedIdsArray),
+		[collapsedIdsArray],
+	);
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -65,25 +72,13 @@ export function TaskTreeView() {
 		return ids;
 	}, [tasks]);
 
-	const handleToggleCollapse = (id: string) => {
-		setCollapsedIds((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) {
-				next.delete(id);
-			} else {
-				next.add(id);
-			}
-			return next;
-		});
-	};
+	const handleCollapseAll = useCallback(() => {
+		collapseAll([...parentIds]);
+	}, [collapseAll, parentIds]);
 
-	const handleCollapseAll = () => {
-		setCollapsedIds(new Set(parentIds));
-	};
-
-	const handleExpandAll = () => {
-		setCollapsedIds(new Set());
-	};
+	const handleExpandAll = useCallback(() => {
+		expandAll();
+	}, [expandAll]);
 
 	const handleSelectTask = (id: string) => {
 		setSelectedTaskId(id);
@@ -164,7 +159,7 @@ export function TaskTreeView() {
 						task={task}
 						childrenMap={childrenMap}
 						collapsedIds={collapsedIds}
-						onToggleCollapse={handleToggleCollapse}
+						onToggleCollapse={toggleCollapse}
 						onSelectTask={handleSelectTask}
 						onAddChild={handleAddChild}
 						onStatusChange={handleStatusChange}
