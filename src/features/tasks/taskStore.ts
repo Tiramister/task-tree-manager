@@ -66,18 +66,21 @@ export const useTaskStore = create<TaskState>()(
 
 						const updated = { ...task, ...input };
 
-						// status が completed に変わったら completedAt を設定
-						if (input.status === "completed" && task.status !== "completed") {
-							updated.completedAt = new Date().toISOString();
-						}
+						// completedAt が明示的に指定されていない場合のみ自動設定
+						if (!("completedAt" in input)) {
+							// status が completed に変わったら completedAt を設定
+							if (input.status === "completed" && task.status !== "completed") {
+								updated.completedAt = new Date().toISOString();
+							}
 
-						// status が completed から他に変わったら completedAt を削除
-						if (
-							input.status &&
-							input.status !== "completed" &&
-							task.status === "completed"
-						) {
-							delete updated.completedAt;
+							// status が completed から他に変わったら completedAt を削除
+							if (
+								input.status &&
+								input.status !== "completed" &&
+								task.status === "completed"
+							) {
+								delete updated.completedAt;
+							}
 						}
 
 						return updated;

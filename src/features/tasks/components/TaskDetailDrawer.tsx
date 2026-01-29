@@ -50,6 +50,7 @@ export function TaskDetailDrawer({
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [dueDate, setDueDate] = useState("");
+	const [completedDate, setCompletedDate] = useState("");
 	const [notes, setNotes] = useState("");
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
@@ -59,6 +60,7 @@ export function TaskDetailDrawer({
 			setTitle(task.title);
 			setDescription(task.description ?? "");
 			setDueDate(task.dueDate ? task.dueDate.split("T")[0] : "");
+			setCompletedDate(task.completedAt ? task.completedAt.split("T")[0] : "");
 			setNotes(task.notes ?? "");
 		}
 	}, [task]);
@@ -103,6 +105,15 @@ export function TaskDetailDrawer({
 		setDueDate(value);
 		const newValue = value ? `${value}T00:00:00.000Z` : undefined;
 		updateTask(task.id, { dueDate: newValue });
+	};
+
+	const handleCompletedDateChange = (
+		e: React.ChangeEvent<HTMLInputElement>,
+	) => {
+		const value = e.target.value;
+		setCompletedDate(value);
+		const newValue = value ? `${value}T00:00:00.000Z` : undefined;
+		updateTask(task.id, { completedAt: newValue });
 	};
 
 	const handleNotesBlur = () => {
@@ -200,19 +211,23 @@ export function TaskDetailDrawer({
 					{/* 子タスク */}
 					<DescendantTaskTree parentId={task.id} />
 
-					{/* 読み取り専用情報 */}
-					<div className="space-y-4 pt-4 border-t">
-						<div>
-							<Label className="text-muted-foreground">作成日</Label>
-							<p className="text-sm mt-1">{formatDate(task.createdAt)}</p>
+					{/* 完了日 */}
+					{task.status === "completed" && (
+						<div className="space-y-2">
+							<Label htmlFor="completedDate">完了日</Label>
+							<Input
+								id="completedDate"
+								type="date"
+								value={completedDate}
+								onChange={handleCompletedDateChange}
+							/>
 						</div>
+					)}
 
-						{task.completedAt && (
-							<div>
-								<Label className="text-muted-foreground">完了日</Label>
-								<p className="text-sm mt-1">{formatDate(task.completedAt)}</p>
-							</div>
-						)}
+					{/* 読み取り専用情報 */}
+					<div className="pt-4 border-t">
+						<Label className="text-muted-foreground">作成日</Label>
+						<p className="text-sm mt-1">{formatDate(task.createdAt)}</p>
 					</div>
 
 					{/* 削除ボタン */}

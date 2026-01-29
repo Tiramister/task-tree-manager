@@ -1,17 +1,4 @@
-## ADDED Requirements
-
-### Requirement: タスクは必須フィールドを持つ
-
-タスクは以下の必須フィールドを持たなければならない（SHALL）：
-- `id`: 一意の識別子（string）
-- `title`: タスク名（string）
-- `status`: ステータス（"not_started" | "in_progress" | "waiting" | "completed"）
-- `createdAt`: 作成日時（ISO 8601 形式の string）
-- `sortOrder`: 表示順序（number）
-
-#### Scenario: 新規タスクは必須フィールドを持つ
-- **WHEN** 新しいタスクが作成される
-- **THEN** id, title, status, createdAt, sortOrder がすべて設定されている
+## MODIFIED Requirements
 
 ### Requirement: タスクはオプショナルフィールドを持てる
 
@@ -35,15 +22,3 @@
 #### Scenario: UpdateTaskInput で completedAt を更新できる
 - **WHEN** UpdateTaskInput に completedAt を指定してタスクを更新する
 - **THEN** タスクの completedAt が指定した値で更新される
-
-### Requirement: ステータスは4種類のみ
-
-タスクのステータスは以下の4種類のみ許可される（SHALL）：
-- `not_started`: 未着手
-- `in_progress`: 作業中
-- `waiting`: 待ち
-- `completed`: 完了
-
-#### Scenario: 無効なステータスは設定できない
-- **WHEN** 定義外のステータス値を設定しようとする
-- **THEN** TypeScript の型エラーとなる

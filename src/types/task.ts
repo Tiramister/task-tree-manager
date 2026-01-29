@@ -24,5 +24,8 @@ export type CreateTaskInput = Pick<Task, "title"> &
 	Partial<Pick<Task, "description" | "dueDate" | "notes" | "parentId">>;
 
 export type UpdateTaskInput = Partial<
-	Pick<Task, "title" | "description" | "dueDate" | "notes" | "status">
+	Pick<
+		Task,
+		"title" | "description" | "dueDate" | "notes" | "status" | "completedAt"
+	>
 >;
