@@ -8,7 +8,9 @@
 
 ## 開発フロー
 - 実装後は必ず `npm run check` と `npm run build` を実行して、エラーがないことを確認してください。
+- OpenSpec でアーカイブするときは、常に spec を同期してください。
 
 ## ツール
 - ランタイム (Node.js など) のバージョン管理には、既にインストールされている mise-en-place を使ってください。
 - grep の代わりに rg を使ってください。
+- openspec はグローバルにインストールされているので、`npx openspec` ではなく `openspec` を使ってください。
