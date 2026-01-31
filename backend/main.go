@@ -32,6 +32,12 @@ func main() {
 	mux.HandleFunc("POST /login", handleLogin(pool))
 	mux.HandleFunc("POST /logout", handleLogout(pool))
 
+	mux.HandleFunc("GET /tasks", handleGetTasks(pool))
+	mux.HandleFunc("POST /tasks", handleCreateTask(pool))
+	mux.HandleFunc("PATCH /tasks/{id}", handleUpdateTask(pool))
+	mux.HandleFunc("DELETE /tasks/{id}", handleDeleteTask(pool))
+	mux.HandleFunc("PATCH /tasks/{id}/reorder", handleReorderTask(pool))
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Hello, world!")
 	})

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -11,6 +12,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type contextKey string
+
+const userIDKey contextKey = "userID"
 
 const sessionCookieName = "session_id"
 const sessionDuration = 24 * time.Hour
@@ -30,10 +35,11 @@ func authMiddleware(pool *pgxpool.Pool, next http.Handler) http.Handler {
 			return
 		}
 
+		var userID string
 		var expiresAt time.Time
 		err = pool.QueryRow(r.Context(),
-			"SELECT expires_at FROM sessions WHERE id = $1", cookie.Value,
-		).Scan(&expiresAt)
+			"SELECT user_id, expires_at FROM sessions WHERE id = $1", cookie.Value,
+		).Scan(&userID, &expiresAt)
 		if err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -44,7 +50,8 @@ func authMiddleware(pool *pgxpool.Pool, next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -136,6 +143,13 @@ func handleLogout(pool *pgxpool.Pool) http.HandlerFunc {
 		})
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func getUserID(r *http.Request) string {
+	if v, ok := r.Context().Value(userIDKey).(string); ok {
+		return v
+	}
+	return ""
 }
 
 func generateSessionID() (string, error) {
