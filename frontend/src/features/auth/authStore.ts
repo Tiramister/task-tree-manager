@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { useTaskStore } from "@/features/tasks/taskStore";
+import { fetchTasks, syncOnLogin } from "@/features/tasks/taskSyncService";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -33,6 +35,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
 		}
 		const data = await meRes.json();
 		set({ username: data.username });
+
+		const localTasks = useTaskStore.getState().tasks;
+		const result = await syncOnLogin(localTasks);
+		if (result) {
+			useTaskStore.getState().syncFromServer(result.tasks);
+		}
 	},
 
 	logout: async () => {
@@ -51,6 +59,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
 			if (res.ok) {
 				const data = await res.json();
 				set({ username: data.username, loading: false });
+
+				const tasks = await fetchTasks();
+				useTaskStore.getState().syncFromServer(tasks);
 			} else {
 				set({ username: null, loading: false });
 			}

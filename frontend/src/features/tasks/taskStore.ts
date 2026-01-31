@@ -1,7 +1,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useAuthStore } from "@/features/auth/authStore";
 import type { CreateTaskInput, Task, UpdateTaskInput } from "@/types/task";
 import { sampleTasks } from "./sampleData";
+import {
+	createTaskOnServer,
+	deleteTaskOnServer,
+	reorderTaskOnServer,
+	updateTaskOnServer,
+} from "./taskSyncService";
 
 interface CompletedGroup {
 	date: string;
@@ -20,9 +27,14 @@ interface TaskState {
 	getAncestorIds: (taskIds: string[]) => Set<string>;
 	exportTasks: () => string;
 	importTasks: (tasks: Task[]) => void;
+	syncFromServer: (tasks: Task[]) => void;
 	toggleCollapse: (id: string) => void;
 	collapseAll: (ids: string[]) => void;
 	expandAll: () => void;
+}
+
+function isLoggedIn(): boolean {
+	return useAuthStore.getState().username !== null;
 }
 
 export const useTaskStore = create<TaskState>()(
@@ -56,10 +68,16 @@ export const useTaskStore = create<TaskState>()(
 					tasks: [...state.tasks, newTask],
 				}));
 
+				if (isLoggedIn()) {
+					createTaskOnServer(newTask);
+				}
+
 				return newTask;
 			},
 
 			updateTask: (id, input) => {
+				let serverInput = { ...input };
+
 				set((state) => ({
 					tasks: state.tasks.map((task) => {
 						if (task.id !== id) return task;
@@ -71,6 +89,10 @@ export const useTaskStore = create<TaskState>()(
 							// status が completed に変わったら completedAt を設定
 							if (input.status === "completed" && task.status !== "completed") {
 								updated.completedAt = new Date().toISOString();
+								serverInput = {
+									...serverInput,
+									completedAt: updated.completedAt,
+								};
 							}
 
 							// status が completed から他に変わったら completedAt を削除
@@ -86,6 +108,10 @@ export const useTaskStore = create<TaskState>()(
 						return updated;
 					}),
 				}));
+
+				if (isLoggedIn()) {
+					updateTaskOnServer(id, serverInput);
+				}
 			},
 
 			deleteTask: (id) => {
@@ -113,6 +139,10 @@ export const useTaskStore = create<TaskState>()(
 						),
 					};
 				});
+
+				if (isLoggedIn()) {
+					deleteTaskOnServer(id);
+				}
 			},
 
 			moveTask: (id, direction) => {
@@ -138,6 +168,11 @@ export const useTaskStore = create<TaskState>()(
 						return t;
 					}),
 				}));
+
+				if (isLoggedIn()) {
+					reorderTaskOnServer(target.id, swapTarget.sortOrder);
+					reorderTaskOnServer(swapTarget.id, target.sortOrder);
+				}
 			},
 
 			getTaskById: (id) => {
@@ -166,6 +201,10 @@ export const useTaskStore = create<TaskState>()(
 
 			importTasks: (tasks) => {
 				set({ tasks });
+			},
+
+			syncFromServer: (tasks) => {
+				set({ tasks, collapsedIds: [] });
 			},
 
 			toggleCollapse: (id) => {
