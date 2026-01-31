@@ -54,8 +54,9 @@ func connectDB(ctx context.Context) (*pgxpool.Pool, error) {
 		if err := pool.Ping(ctx); err == nil {
 			fmt.Println("Connected to database")
 			return pool, nil
+		} else {
+			fmt.Printf("Waiting for database... (%d/%d): %v\n", i+1, maxRetries, err)
 		}
-		fmt.Printf("Waiting for database... (%d/%d)\n", i+1, maxRetries)
 		time.Sleep(time.Second)
 	}
 
