@@ -31,12 +31,14 @@ func databaseURL() string {
 	user := getEnvOrDefault("DB_USER", "postgres")
 	password := os.Getenv("DB_PASSWORD")
 	dbname := getEnvOrDefault("DB_NAME", "task_tree_manager")
+	sslmode := getEnvOrDefault("DB_SSLMODE", "disable")
 
 	u := &url.URL{
-		Scheme: "postgres",
-		User:   url.UserPassword(user, password),
-		Host:   fmt.Sprintf("%s:%s", host, port),
-		Path:   dbname,
+		Scheme:   "postgres",
+		User:     url.UserPassword(user, password),
+		Host:     fmt.Sprintf("%s:%s", host, port),
+		Path:     dbname,
+		RawQuery: fmt.Sprintf("sslmode=%s", sslmode),
 	}
 	return u.String()
 }
