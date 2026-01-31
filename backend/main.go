@@ -31,6 +31,7 @@ func main() {
 
 	mux.HandleFunc("POST /login", handleLogin(pool))
 	mux.HandleFunc("POST /logout", handleLogout(pool))
+	mux.HandleFunc("GET /me", handleMe(pool))
 
 	mux.HandleFunc("GET /tasks", handleGetTasks(pool))
 	mux.HandleFunc("POST /tasks", handleCreateTask(pool))
@@ -42,8 +43,8 @@ func main() {
 		fmt.Fprint(w, "Hello, world!")
 	})
 
-	// 認証ミドルウェアを適用
-	handler := authMiddleware(pool, mux)
+	// CORS・認証ミドルウェアを適用
+	handler := corsMiddleware(authMiddleware(pool, mux))
 
 	port := os.Getenv("PORT")
 	if port == "" {

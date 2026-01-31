@@ -20,6 +20,28 @@ const userIDKey contextKey = "userID"
 const sessionCookieName = "session_id"
 const sessionDuration = 24 * time.Hour
 
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := os.Getenv("CORS_ORIGIN")
+		if origin == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // authMiddleware は /health と /login 以外のエンドポイントに認証を要求する
 func authMiddleware(pool *pgxpool.Pool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +164,28 @@ func handleLogout(pool *pgxpool.Pool) http.HandlerFunc {
 			Secure:   os.Getenv("COOKIE_SECURE") == "true",
 		})
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func handleMe(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := getUserID(r)
+		if userID == "" {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		var username string
+		err := pool.QueryRow(r.Context(),
+			"SELECT username FROM users WHERE id = $1", userID,
+		).Scan(&username)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"username": username})
 	}
 }
 
