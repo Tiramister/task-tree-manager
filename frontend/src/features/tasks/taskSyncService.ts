@@ -35,8 +35,11 @@ function localTaskToCreateRequest(task: Task, parentIdOverride?: string) {
 	return {
 		title: task.title,
 		sort_order: task.sortOrder,
+		status: task.status,
+		created_at: task.createdAt,
 		...(task.description != null && { description: task.description }),
 		...(task.dueDate != null && { due_date: task.dueDate }),
+		...(task.completedAt != null && { completed_at: task.completedAt }),
 		...(task.notes != null && { notes: task.notes }),
 		...((parentIdOverride ?? task.parentId) != null && {
 			parent_id: parentIdOverride ?? task.parentId,

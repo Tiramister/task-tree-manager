@@ -62,6 +62,9 @@ type createTaskRequest struct {
 	Notes       *string `json:"notes"`
 	ParentID    *string `json:"parent_id"`
 	SortOrder   *int    `json:"sort_order"`
+	Status      *string `json:"status"`
+	CompletedAt *string `json:"completed_at"`
+	CreatedAt   *string `json:"created_at"`
 }
 
 func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
@@ -76,6 +79,16 @@ func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
 		if req.Title == "" {
 			http.Error(w, "Bad Request: title is required", http.StatusBadRequest)
 			return
+		}
+
+		// status のバリデーション
+		if req.Status != nil {
+			switch *req.Status {
+			case "not_started", "in_progress", "waiting", "completed":
+			default:
+				http.Error(w, "Bad Request: invalid status", http.StatusBadRequest)
+				return
+			}
 		}
 
 		// parent_id の所有者検証
@@ -121,12 +134,40 @@ func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
 			dueDate = &parsed
 		}
 
+		// completed_at のパース
+		var completedAt *time.Time
+		if req.CompletedAt != nil {
+			parsed, err := time.Parse(time.RFC3339, *req.CompletedAt)
+			if err != nil {
+				http.Error(w, "Bad Request: invalid completed_at format", http.StatusBadRequest)
+				return
+			}
+			completedAt = &parsed
+		}
+
+		// created_at のパース
+		var createdAt *time.Time
+		if req.CreatedAt != nil {
+			parsed, err := time.Parse(time.RFC3339, *req.CreatedAt)
+			if err != nil {
+				http.Error(w, "Bad Request: invalid created_at format", http.StatusBadRequest)
+				return
+			}
+			createdAt = &parsed
+		}
+
+		// status のデフォルト値
+		status := "not_started"
+		if req.Status != nil {
+			status = *req.Status
+		}
+
 		var t task
 		err := pool.QueryRow(r.Context(),
-			`INSERT INTO tasks (user_id, title, description, due_date, notes, parent_id, sort_order)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7)
+			`INSERT INTO tasks (user_id, title, description, due_date, notes, parent_id, sort_order, status, completed_at, created_at)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, now()))
 			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at`,
-			userID, req.Title, req.Description, dueDate, req.Notes, req.ParentID, sortOrder,
+			userID, req.Title, req.Description, dueDate, req.Notes, req.ParentID, sortOrder, status, completedAt, createdAt,
 		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
