@@ -85,11 +85,20 @@ export async function fetchTasks(): Promise<Task[]> {
 	return data.map(serverTaskToLocal);
 }
 
-export async function createTaskOnServer(task: Task): Promise<void> {
-	await apiFetch("/tasks", {
+export async function createTaskOnServer(task: Task): Promise<{ id: string }> {
+	const res = await apiFetch("/tasks", {
 		method: "POST",
 		body: JSON.stringify(localTaskToCreateRequest(task)),
 	});
+
+	if (!res.ok) {
+		throw new Error(
+			`タスク作成に失敗しました (status: ${res.status} ${res.statusText})`,
+		);
+	}
+
+	const created: ServerTask = await res.json();
+	return { id: created.id };
 }
 
 export async function updateTaskOnServer(

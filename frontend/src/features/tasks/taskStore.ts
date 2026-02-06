@@ -21,6 +21,7 @@ interface TaskState {
 	collapsedIds: string[];
 	importSyncError: string | null;
 	importSyncing: boolean;
+	replaceTaskId: (localId: string, serverId: string) => void;
 	addTask: (input: CreateTaskInput) => Task;
 	updateTask: (id: string, input: UpdateTaskInput) => void;
 	deleteTask: (id: string) => void;
@@ -42,6 +43,30 @@ function isLoggedIn(): boolean {
 	return useAuthStore.getState().username !== null;
 }
 
+const taskIdAliasMap = new Map<string, string>();
+
+function resolveTaskId(id: string): string {
+	let current = id;
+	const visited = new Set<string>();
+
+	while (taskIdAliasMap.has(current) && !visited.has(current)) {
+		visited.add(current);
+		current = taskIdAliasMap.get(current)!;
+	}
+
+	return current;
+}
+
+function rememberTaskIdAlias(localId: string, serverId: string): void {
+	taskIdAliasMap.set(localId, serverId);
+
+	for (const [from, to] of taskIdAliasMap.entries()) {
+		if (to === localId) {
+			taskIdAliasMap.set(from, serverId);
+		}
+	}
+}
+
 export const useTaskStore = create<TaskState>()(
 	persist(
 		(set, get) => ({
@@ -50,9 +75,35 @@ export const useTaskStore = create<TaskState>()(
 			importSyncError: null,
 			importSyncing: false,
 
+			replaceTaskId: (localId, serverId) => {
+				if (localId === serverId) return;
+
+				set((state) => ({
+					tasks: state.tasks.map((task) => {
+						if (task.id === localId) {
+							return { ...task, id: serverId };
+						}
+						if (task.parentId === localId) {
+							return { ...task, parentId: serverId };
+						}
+						return task;
+					}),
+					collapsedIds: Array.from(
+						new Set(
+							state.collapsedIds.map((id) => (id === localId ? serverId : id)),
+						),
+					),
+				}));
+
+				rememberTaskIdAlias(localId, serverId);
+			},
+
 			addTask: (input) => {
+				const resolvedParentId = input.parentId
+					? resolveTaskId(input.parentId)
+					: undefined;
 				const siblings = get().tasks.filter(
-					(t) => t.parentId === input.parentId,
+					(t) => t.parentId === resolvedParentId,
 				);
 				const maxSortOrder =
 					siblings.length > 0
@@ -68,7 +119,7 @@ export const useTaskStore = create<TaskState>()(
 					description: input.description,
 					dueDate: input.dueDate,
 					notes: input.notes,
-					parentId: input.parentId,
+					parentId: resolvedParentId,
 				};
 
 				set((state) => ({
@@ -76,18 +127,31 @@ export const useTaskStore = create<TaskState>()(
 				}));
 
 				if (isLoggedIn()) {
-					createTaskOnServer(newTask);
+					void createTaskOnServer(newTask)
+						.then((created) => {
+							get().replaceTaskId(newTask.id, created.id);
+						})
+						.catch((error) => {
+							console.error("タスク作成後の ID 同期に失敗しました", {
+								error,
+								localId: newTask.id,
+							});
+						});
 				}
 
 				return newTask;
 			},
 
 			updateTask: (id, input) => {
+				const resolvedId = resolveTaskId(id);
+				if (!get().tasks.some((task) => task.id === resolvedId)) {
+					return;
+				}
 				let serverInput = { ...input };
 
 				set((state) => ({
 					tasks: state.tasks.map((task) => {
-						if (task.id !== id) return task;
+						if (task.id !== resolvedId) return task;
 
 						const updated = { ...task, ...input };
 
@@ -117,11 +181,15 @@ export const useTaskStore = create<TaskState>()(
 				}));
 
 				if (isLoggedIn()) {
-					updateTaskOnServer(id, serverInput);
+					void updateTaskOnServer(resolvedId, serverInput);
 				}
 			},
 
 			deleteTask: (id) => {
+				const resolvedId = resolveTaskId(id);
+				if (!get().tasks.some((task) => task.id === resolvedId)) {
+					return;
+				}
 				const collectDescendantIds = (
 					taskId: string,
 					tasks: Task[],
@@ -136,8 +204,8 @@ export const useTaskStore = create<TaskState>()(
 
 				set((state) => {
 					const idsToDelete = new Set([
-						id,
-						...collectDescendantIds(id, state.tasks),
+						resolvedId,
+						...collectDescendantIds(resolvedId, state.tasks),
 					]);
 					return {
 						tasks: state.tasks.filter((task) => !idsToDelete.has(task.id)),
@@ -148,20 +216,21 @@ export const useTaskStore = create<TaskState>()(
 				});
 
 				if (isLoggedIn()) {
-					deleteTaskOnServer(id);
+					void deleteTaskOnServer(resolvedId);
 				}
 			},
 
 			moveTask: (id, direction) => {
+				const resolvedId = resolveTaskId(id);
 				const tasks = get().tasks;
-				const target = tasks.find((t) => t.id === id);
+				const target = tasks.find((t) => t.id === resolvedId);
 				if (!target) return;
 
 				const siblings = tasks
 					.filter((t) => t.parentId === target.parentId)
 					.sort((a, b) => b.sortOrder - a.sortOrder);
 
-				const idx = siblings.findIndex((t) => t.id === id);
+				const idx = siblings.findIndex((t) => t.id === resolvedId);
 				const swapIdx = direction === "up" ? idx - 1 : idx + 1;
 				if (swapIdx < 0 || swapIdx >= siblings.length) return;
 
@@ -177,13 +246,14 @@ export const useTaskStore = create<TaskState>()(
 				}));
 
 				if (isLoggedIn()) {
-					reorderTaskOnServer(target.id, swapTarget.sortOrder);
-					reorderTaskOnServer(swapTarget.id, target.sortOrder);
+					void reorderTaskOnServer(target.id, swapTarget.sortOrder);
+					void reorderTaskOnServer(swapTarget.id, target.sortOrder);
 				}
 			},
 
 			getTaskById: (id) => {
-				return get().tasks.find((task) => task.id === id);
+				const resolvedId = resolveTaskId(id);
+				return get().tasks.find((task) => task.id === resolvedId);
 			},
 
 			getCompletedByDate: () => {
@@ -246,6 +316,7 @@ export const useTaskStore = create<TaskState>()(
 			},
 
 			syncFromServer: (tasks) => {
+				taskIdAliasMap.clear();
 				set({ tasks, collapsedIds: [] });
 			},
 

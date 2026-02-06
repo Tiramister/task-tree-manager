@@ -41,7 +41,7 @@ export function TaskDetailDrawer({
 	onOpenChange,
 }: TaskDetailDrawerProps) {
 	const task = useTaskStore((state) =>
-		taskId ? state.tasks.find((t) => t.id === taskId) : undefined,
+		taskId ? state.getTaskById(taskId) : undefined,
 	);
 	const tasks = useTaskStore((state) => state.tasks);
 	const updateTask = useTaskStore((state) => state.updateTask);
