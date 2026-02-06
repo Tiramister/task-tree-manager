@@ -10,13 +10,12 @@ import { TaskTreeNode } from "./TaskTreeNode";
 export function TaskTreeView() {
 	const tasks = useTaskStore((state) => state.tasks);
 	const updateTask = useTaskStore((state) => state.updateTask);
-	const collapsedIdsArray = useTaskStore((state) => state.collapsedIds);
 	const toggleCollapse = useTaskStore((state) => state.toggleCollapse);
 	const collapseAll = useTaskStore((state) => state.collapseAll);
 	const expandAll = useTaskStore((state) => state.expandAll);
 	const collapsedIds = useMemo(
-		() => new Set(collapsedIdsArray),
-		[collapsedIdsArray],
+		() => new Set(tasks.filter((t) => t.isCollapsed).map((t) => t.id)),
+		[tasks],
 	);
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);

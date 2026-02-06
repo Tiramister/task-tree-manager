@@ -13,10 +13,11 @@ PostgreSQL に `tasks` テーブルが存在しなければならない（SHALL�
 - `notes`: TEXT, NULL
 - `parent_id`: UUID, NULL, tasks テーブルへの自己参照外部キー
 - `created_at`: TIMESTAMPTZ, NOT NULL, DEFAULT now()
+- `is_collapsed`: BOOLEAN, NOT NULL, DEFAULT false
 
 #### Scenario: tasks テーブルが存在する
 - **WHEN** データベースにマイグレーションが適用された状態
-- **THEN** `tasks` テーブルが存在する
+- **THEN** `tasks` テーブルが存在し、`is_collapsed` カラムを含む
 
 ### Requirement: タスクはユーザーに紐づく
 

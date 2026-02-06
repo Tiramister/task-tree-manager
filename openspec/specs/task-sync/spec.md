@@ -113,7 +113,15 @@
 
 ### Requirement: データ形式の変換
 
-taskSyncService はバックエンド API のレスポンス（snake_case）をフロントエンドのタスク型（camelCase）に変換しなければならない（SHALL）。また、フロントエンドのタスクデータをバックエンド API のリクエスト形式に変換しなければならない（SHALL）。ローカルタスクの一括アップロード時には、`status`、`completedAt` → `completed_at`、`createdAt` → `created_at` の変換も含めなければならない（SHALL）。
+taskSyncService はバックエンド API のレスポンス（snake_case）をフロントエンドのタスク型（camelCase）に変換しなければならない（SHALL）。また、フロントエンドのタスクデータをバックエンド API のリクエスト形式に変換しなければならない（SHALL）。ローカルタスクの一括アップロード時には、`status`、`completedAt` → `completed_at`、`createdAt` → `created_at`、`isCollapsed` → `is_collapsed` の変換も含めなければならない（SHALL）。
+
+変換対象フィールド:
+- `sort_order` ↔ `sortOrder`
+- `due_date` ↔ `dueDate`
+- `completed_at` ↔ `completedAt`
+- `parent_id` ↔ `parentId`
+- `created_at` ↔ `createdAt`
+- `is_collapsed` ↔ `isCollapsed`
 
 更新リクエスト（`PATCH /tasks/{id}`）では、nullable フィールド（`description`、`dueDate`、`notes`、`completedAt`）について、次を満たさなければならない（SHALL）。
 - フィールドが更新 input に含まれ、値が未定義の場合は `null` に変換して送信する
@@ -122,17 +130,36 @@ taskSyncService はバックエンド API のレスポンス（snake_case）を�
 #### Scenario: バックエンドのレスポンスをフロントエンド形式に変換する
 
 - **WHEN** `GET /tasks` のレスポンスを受け取る
-- **THEN** `sort_order` → `sortOrder`、`due_date` → `dueDate`、`completed_at` → `completedAt`、`parent_id` → `parentId`、`created_at` → `createdAt` に変換され、`user_id` フィールドは除外される
+- **THEN** `sort_order` → `sortOrder`、`due_date` → `dueDate`、`completed_at` → `completedAt`、`parent_id` → `parentId`、`created_at` → `createdAt`、`is_collapsed` → `isCollapsed` に変換され、`user_id` フィールドは除外される
 
 #### Scenario: フロントエンドのタスクデータをバックエンドのリクエスト形式に変換する
 
 - **WHEN** フロントエンドのタスクデータをバックエンドに送信する
-- **THEN** `sortOrder` → `sort_order`、`dueDate` → `due_date`、`completedAt` → `completed_at`、`parentId` → `parent_id` に変換される
+- **THEN** `sortOrder` → `sort_order`、`dueDate` → `due_date`、`completedAt` → `completed_at`、`parentId` → `parent_id`、`isCollapsed` → `is_collapsed` に変換される
 
 #### Scenario: ローカルタスクのアップロード時にすべてのフィールドを変換する
 
 - **WHEN** ローカルタスクの一括アップロードでタスクデータを変換する
-- **THEN** `title`、`sortOrder` → `sort_order`、`description`、`dueDate` → `due_date`、`notes`、`parentId` → `parent_id` に加え、`status`、`completedAt` → `completed_at`、`createdAt` → `created_at` も変換される
+- **THEN** `title`、`sortOrder` → `sort_order`、`description`、`dueDate` → `due_date`、`notes`、`parentId` → `parent_id` に加え、`status`、`completedAt` → `completed_at`、`createdAt` → `created_at`、`isCollapsed` → `is_collapsed` も変換される
+
+### Requirement: 折り畳み操作時のバックエンド送信
+
+ログイン済みユーザーが折り畳み操作を行った場合、対応するバックエンド API にデータを送信しなければならない（SHALL）。送信はバックグラウンドで行う（SHALL）。
+
+#### Scenario: ログイン済みユーザーがタスクを折り畳む
+
+- **WHEN** ログイン済みユーザーがタスクを折り畳む
+- **THEN** taskStore のタスクの `isCollapsed` が更新された後、`PATCH /tasks/{id}` に `{ "is_collapsed": true }` が送信される
+
+#### Scenario: ログイン済みユーザーがタスクを展開する
+
+- **WHEN** ログイン済みユーザーがタスクを展開する
+- **THEN** taskStore のタスクの `isCollapsed` が更新された後、`PATCH /tasks/{id}` に `{ "is_collapsed": false }` が送信される
+
+#### Scenario: 未ログインユーザーが折り畳み操作を行う
+
+- **WHEN** 未ログインユーザーがタスクの折り畳み/展開を行う
+- **THEN** バックエンドへのリクエストは送信されず、localStorage のみが更新される
 
 #### Scenario: 更新リクエストで削除されたフィールドを null に変換する
 

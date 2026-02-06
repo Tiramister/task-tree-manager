@@ -18,7 +18,6 @@ interface CompletedGroup {
 
 interface TaskState {
 	tasks: Task[];
-	collapsedIds: string[];
 	importSyncError: string | null;
 	importSyncing: boolean;
 	replaceTaskId: (localId: string, serverId: string) => void;
@@ -71,7 +70,6 @@ export const useTaskStore = create<TaskState>()(
 	persist(
 		(set, get) => ({
 			tasks: sampleTasks,
-			collapsedIds: [],
 			importSyncError: null,
 			importSyncing: false,
 
@@ -88,11 +86,6 @@ export const useTaskStore = create<TaskState>()(
 						}
 						return task;
 					}),
-					collapsedIds: Array.from(
-						new Set(
-							state.collapsedIds.map((id) => (id === localId ? serverId : id)),
-						),
-					),
 				}));
 
 				rememberTaskIdAlias(localId, serverId);
@@ -120,6 +113,7 @@ export const useTaskStore = create<TaskState>()(
 					dueDate: input.dueDate,
 					notes: input.notes,
 					parentId: resolvedParentId,
+					isCollapsed: false,
 				};
 
 				set((state) => ({
@@ -213,9 +207,6 @@ export const useTaskStore = create<TaskState>()(
 					]);
 					return {
 						tasks: state.tasks.filter((task) => !idsToDelete.has(task.id)),
-						collapsedIds: state.collapsedIds.filter(
-							(cid) => !idsToDelete.has(cid),
-						),
 					};
 				});
 
@@ -321,27 +312,52 @@ export const useTaskStore = create<TaskState>()(
 
 			syncFromServer: (tasks) => {
 				taskIdAliasMap.clear();
-				set({ tasks, collapsedIds: [] });
+				set({ tasks });
 			},
 
 			toggleCollapse: (id) => {
-				set((state) => {
-					const index = state.collapsedIds.indexOf(id);
-					if (index >= 0) {
-						return {
-							collapsedIds: state.collapsedIds.filter((cid) => cid !== id),
-						};
-					}
-					return { collapsedIds: [...state.collapsedIds, id] };
-				});
+				const resolvedId = resolveTaskId(id);
+				const task = get().tasks.find((t) => t.id === resolvedId);
+				if (!task) return;
+
+				const newIsCollapsed = !task.isCollapsed;
+				set((state) => ({
+					tasks: state.tasks.map((t) =>
+						t.id === resolvedId ? { ...t, isCollapsed: newIsCollapsed } : t,
+					),
+				}));
+
+				if (isLoggedIn()) {
+					void updateTaskOnServer(resolvedId, { isCollapsed: newIsCollapsed });
+				}
 			},
 
 			collapseAll: (ids) => {
-				set({ collapsedIds: ids });
+				const idsSet = new Set(ids);
+				set((state) => ({
+					tasks: state.tasks.map((t) =>
+						idsSet.has(t.id) ? { ...t, isCollapsed: true } : t,
+					),
+				}));
+
+				if (isLoggedIn()) {
+					for (const id of ids) {
+						void updateTaskOnServer(id, { isCollapsed: true });
+					}
+				}
 			},
 
 			expandAll: () => {
-				set({ collapsedIds: [] });
+				const tasksToExpand = get().tasks.filter((t) => t.isCollapsed);
+				set((state) => ({
+					tasks: state.tasks.map((t) => ({ ...t, isCollapsed: false })),
+				}));
+
+				if (isLoggedIn()) {
+					for (const task of tasksToExpand) {
+						void updateTaskOnServer(task.id, { isCollapsed: false });
+					}
+				}
 			},
 
 			getAncestorIds: (taskIds) => {

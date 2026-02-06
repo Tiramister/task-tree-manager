@@ -21,6 +21,7 @@ type task struct {
 	Notes       *string    `json:"notes"`
 	ParentID    *string    `json:"parent_id"`
 	CreatedAt   time.Time  `json:"created_at"`
+	IsCollapsed bool       `json:"is_collapsed"`
 }
 
 func handleGetTasks(pool *pgxpool.Pool) http.HandlerFunc {
@@ -28,7 +29,7 @@ func handleGetTasks(pool *pgxpool.Pool) http.HandlerFunc {
 		userID := getUserID(r)
 
 		rows, err := pool.Query(r.Context(),
-			`SELECT id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at
+			`SELECT id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at, is_collapsed
 			 FROM tasks WHERE user_id = $1 ORDER BY sort_order`, userID,
 		)
 		if err != nil {
@@ -40,7 +41,7 @@ func handleGetTasks(pool *pgxpool.Pool) http.HandlerFunc {
 		tasks := []task{}
 		for rows.Next() {
 			var t task
-			if err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt); err != nil {
+			if err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt, &t.IsCollapsed); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
@@ -66,6 +67,7 @@ type createTaskRequest struct {
 	Status      *string `json:"status"`
 	CompletedAt *string `json:"completed_at"`
 	CreatedAt   *string `json:"created_at"`
+	IsCollapsed *bool   `json:"is_collapsed"`
 }
 
 func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
@@ -163,13 +165,19 @@ func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
 			status = *req.Status
 		}
 
+		// is_collapsed のデフォルト値
+		isCollapsed := false
+		if req.IsCollapsed != nil {
+			isCollapsed = *req.IsCollapsed
+		}
+
 		var t task
 		err := pool.QueryRow(r.Context(),
-			`INSERT INTO tasks (user_id, title, description, due_date, notes, parent_id, sort_order, status, completed_at, created_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, now()))
-			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at`,
-			userID, req.Title, req.Description, dueDate, req.Notes, req.ParentID, sortOrder, status, completedAt, createdAt,
-		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt)
+			`INSERT INTO tasks (user_id, title, description, due_date, notes, parent_id, sort_order, status, completed_at, created_at, is_collapsed)
+			 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, now()), $11)
+			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at, is_collapsed`,
+			userID, req.Title, req.Description, dueDate, req.Notes, req.ParentID, sortOrder, status, completedAt, createdAt, isCollapsed,
+		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt, &t.IsCollapsed)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -188,6 +196,7 @@ type updateTaskRequest struct {
 	Notes       *json.RawMessage `json:"notes"`
 	Status      *string          `json:"status"`
 	CompletedAt *json.RawMessage `json:"completed_at"`
+	IsCollapsed *bool            `json:"is_collapsed"`
 }
 
 func decodeNullableString(raw *json.RawMessage) (present bool, value *string, err error) {
@@ -245,9 +254,9 @@ func handleUpdateTask(pool *pgxpool.Pool) http.HandlerFunc {
 		// 対象タスクの所有者検証
 		var existing task
 		err := pool.QueryRow(r.Context(),
-			`SELECT id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at
+			`SELECT id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at, is_collapsed
 			 FROM tasks WHERE id = $1 AND user_id = $2`, taskID, userID,
-		).Scan(&existing.ID, &existing.UserID, &existing.Title, &existing.Status, &existing.SortOrder, &existing.Description, &existing.DueDate, &existing.CompletedAt, &existing.Notes, &existing.ParentID, &existing.CreatedAt)
+		).Scan(&existing.ID, &existing.UserID, &existing.Title, &existing.Status, &existing.SortOrder, &existing.Description, &existing.DueDate, &existing.CompletedAt, &existing.Notes, &existing.ParentID, &existing.CreatedAt, &existing.IsCollapsed)
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return
@@ -284,14 +293,17 @@ func handleUpdateTask(pool *pgxpool.Pool) http.HandlerFunc {
 		} else if present {
 			existing.CompletedAt = value
 		}
+		if req.IsCollapsed != nil {
+			existing.IsCollapsed = *req.IsCollapsed
+		}
 
 		var t task
 		err = pool.QueryRow(r.Context(),
-			`UPDATE tasks SET title = $1, description = $2, due_date = $3, notes = $4, status = $5, completed_at = $6
-			 WHERE id = $7 AND user_id = $8
-			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at`,
-			existing.Title, existing.Description, existing.DueDate, existing.Notes, existing.Status, existing.CompletedAt, taskID, userID,
-		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt)
+			`UPDATE tasks SET title = $1, description = $2, due_date = $3, notes = $4, status = $5, completed_at = $6, is_collapsed = $7
+			 WHERE id = $8 AND user_id = $9
+			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at, is_collapsed`,
+			existing.Title, existing.Description, existing.DueDate, existing.Notes, existing.Status, existing.CompletedAt, existing.IsCollapsed, taskID, userID,
+		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt, &t.IsCollapsed)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -342,9 +354,9 @@ func handleReorderTask(pool *pgxpool.Pool) http.HandlerFunc {
 		err := pool.QueryRow(r.Context(),
 			`UPDATE tasks SET sort_order = $1
 			 WHERE id = $2 AND user_id = $3
-			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at`,
+			 RETURNING id, user_id, title, status, sort_order, description, due_date, completed_at, notes, parent_id, created_at, is_collapsed`,
 			req.SortOrder, taskID, userID,
-		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt)
+		).Scan(&t.ID, &t.UserID, &t.Title, &t.Status, &t.SortOrder, &t.Description, &t.DueDate, &t.CompletedAt, &t.Notes, &t.ParentID, &t.CreatedAt, &t.IsCollapsed)
 		if err != nil {
 			http.Error(w, "Not Found", http.StatusNotFound)
 			return

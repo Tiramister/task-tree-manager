@@ -15,6 +15,7 @@ interface ServerTask {
 	notes: string | null;
 	parent_id: string | null;
 	created_at: string;
+	is_collapsed: boolean;
 }
 
 function serverTaskToLocal(st: ServerTask): Task {
@@ -24,6 +25,7 @@ function serverTaskToLocal(st: ServerTask): Task {
 		status: st.status as Task["status"],
 		sortOrder: st.sort_order,
 		createdAt: st.created_at,
+		isCollapsed: st.is_collapsed,
 		...(st.description != null && { description: st.description }),
 		...(st.due_date != null && { dueDate: st.due_date }),
 		...(st.completed_at != null && { completedAt: st.completed_at }),
@@ -38,6 +40,7 @@ function localTaskToCreateRequest(task: Task, parentIdOverride?: string) {
 		sort_order: task.sortOrder,
 		status: task.status,
 		created_at: task.createdAt,
+		is_collapsed: task.isCollapsed ?? false,
 		...(task.description != null && { description: task.description }),
 		...(task.dueDate != null && { due_date: task.dueDate }),
 		...(task.completedAt != null && { completed_at: task.completedAt }),
@@ -52,11 +55,11 @@ function localTaskToUpdateRequest(
 	input: Partial<
 		Pick<
 			Task,
-			"title" | "description" | "dueDate" | "notes" | "status" | "completedAt"
+			"title" | "description" | "dueDate" | "notes" | "status" | "completedAt" | "isCollapsed"
 		>
 	>,
 ) {
-	const request: Record<string, string | null> = {};
+	const request: Record<string, string | boolean | null> = {};
 
 	if ("title" in input && input.title !== undefined) {
 		request.title = input.title;
@@ -75,6 +78,9 @@ function localTaskToUpdateRequest(
 	}
 	if ("completedAt" in input) {
 		request.completed_at = input.completedAt ?? null;
+	}
+	if ("isCollapsed" in input && input.isCollapsed !== undefined) {
+		request.is_collapsed = input.isCollapsed;
 	}
 
 	return request;
@@ -127,7 +133,7 @@ export async function updateTaskOnServer(
 	input: Partial<
 		Pick<
 			Task,
-			"title" | "description" | "dueDate" | "notes" | "status" | "completedAt"
+			"title" | "description" | "dueDate" | "notes" | "status" | "completedAt" | "isCollapsed"
 		>
 	>,
 ): Promise<void> {

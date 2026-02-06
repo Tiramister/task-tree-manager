@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: 折り畳み状態の永続化
 
 ログイン済みユーザーの場合、システムはタスクツリーの折り畳み状態をバックエンド（tasks テーブルの `is_collapsed` カラム）に永続化しなければならない（SHALL）。未ログインユーザーの場合は、localStorage に永続化しなければならない（SHALL）。

@@ -18,14 +18,15 @@ export interface Task {
 	completedAt?: string; // ISO 8601
 	notes?: string;
 	parentId?: string;
+	isCollapsed?: boolean;
 }
 
 export type CreateTaskInput = Pick<Task, "title"> &
-	Partial<Pick<Task, "description" | "dueDate" | "notes" | "parentId">>;
+	Partial<Pick<Task, "description" | "dueDate" | "notes" | "parentId" | "isCollapsed">>;
 
 export type UpdateTaskInput = Partial<
 	Pick<
 		Task,
-		"title" | "description" | "dueDate" | "notes" | "status" | "completedAt"
+		"title" | "description" | "dueDate" | "notes" | "status" | "completedAt" | "isCollapsed"
 	>
 >;

@@ -2,12 +2,12 @@
 
 ### Requirement: タスク一覧取得
 
-システムは `GET /tasks` エンドポイントを提供し、認証済みユーザーの全タスクをフラットな配列として返さなければならない（SHALL）。レスポンスは JSON 形式で、各タスクのすべてのフィールドを含む。
+システムは `GET /tasks` エンドポイントを提供し、認証済みユーザーの全タスクをフラットな配列として返さなければならない（SHALL）。レスポンスは JSON 形式で、各タスクのすべてのフィールド（`is_collapsed` を含む）を含む。
 
 #### Scenario: 認証済みユーザーがタスク一覧を取得する
 
 - **WHEN** 認証済みユーザーが `GET /tasks` にリクエストを送信する
-- **THEN** ステータスコード 200 と、そのユーザーが所有する全タスクの JSON 配列が返される
+- **THEN** ステータスコード 200 と、そのユーザーが所有する全タスクの JSON 配列が返され、各タスクに `is_collapsed` フィールドが含まれる
 
 #### Scenario: タスクが存在しないユーザーが一覧を取得する
 
@@ -21,12 +21,17 @@
 
 ### Requirement: タスク作成
 
-システムは `POST /tasks` エンドポイントを提供し、認証済みユーザーが新しいタスクを作成できなければならない（SHALL）。リクエストボディには `title`（必須）、`description`、`due_date`、`notes`、`parent_id`、`status`、`completed_at`、`created_at` を含めることができる。`sort_order` はリクエストに含まれる場合はその値を使用し、含まれない場合は同一親の兄弟タスクの最大 `sort_order` + 1 をデフォルト値とする。`status` はリクエストに含まれない場合 `not_started` をデフォルト値とする。`completed_at` はリクエストに含まれない場合 `NULL` をデフォルト値とする。`created_at` はリクエストに含まれない場合、現在時刻をデフォルト値とする。
+システムは `POST /tasks` エンドポイントを提供し、認証済みユーザーが新しいタスクを作成できなければならない（SHALL）。リクエストボディには `title`（必須）、`description`、`due_date`、`notes`、`parent_id`、`status`、`completed_at`、`created_at`、`is_collapsed` を含めることができる。`sort_order` はリクエストに含まれる場合はその値を使用し、含まれない場合は同一親の兄弟タスクの最大 `sort_order` + 1 をデフォルト値とする。`status` はリクエストに含まれない場合 `not_started` をデフォルト値とする。`completed_at` はリクエストに含まれない場合 `NULL` をデフォルト値とする。`created_at` はリクエストに含まれない場合、現在時刻をデフォルト値とする。`is_collapsed` はリクエストに含まれない場合 `false` をデフォルト値とする。
 
 #### Scenario: 必須フィールドのみでタスクを作成する
 
 - **WHEN** 認証済みユーザーが `POST /tasks` に `{ "title": "新しいタスク" }` を送信する
-- **THEN** ステータスコード 201 と、生成された UUID・デフォルトステータス `not_started`・自動計算された `sort_order`・`created_at` を含む作成済みタスクの JSON が返される
+- **THEN** ステータスコード 201 と、生成された UUID・デフォルトステータス `not_started`・`is_collapsed: false`・自動計算された `sort_order`・`created_at` を含む作成済みタスクの JSON が返される
+
+#### Scenario: is_collapsed を指定してタスクを作成する
+
+- **WHEN** 認証済みユーザーが `POST /tasks` に `{ "title": "折り畳みタスク", "is_collapsed": true }` を送信する
+- **THEN** ステータスコード 201 と、`is_collapsed: true` を含む作成済みタスクの JSON が返される
 
 #### Scenario: オプショナルフィールドを含めてタスクを作成する
 
@@ -60,7 +65,7 @@
 
 ### Requirement: タスク更新
 
-システムは `PATCH /tasks/{id}` エンドポイントを提供し、認証済みユーザーが自身のタスクを部分更新できなければならない（SHALL）。更新可能なフィールドは `title`、`description`、`due_date`、`notes`、`status`、`completed_at` とする。
+システムは `PATCH /tasks/{id}` エンドポイントを提供し、認証済みユーザーが自身のタスクを部分更新できなければならない（SHALL）。更新可能なフィールドは `title`、`description`、`due_date`、`notes`、`status`、`completed_at`、`is_collapsed` とする。
 
 nullable フィールド（`description`、`due_date`、`notes`、`completed_at`）は次の 3 状態を区別して処理しなければならない（SHALL）。
 - フィールド未指定: 既存値を保持する
@@ -71,6 +76,21 @@ nullable フィールド（`description`、`due_date`、`notes`、`completed_at`
 
 - **WHEN** 認証済みユーザーが `PATCH /tasks/{id}` に `{ "status": "completed", "completed_at": "2026-01-31T12:00:00Z" }` を送信する
 - **THEN** ステータスコード 200 と、更新後のタスクの JSON が返される
+
+#### Scenario: タスクの折り畳み状態を更新する
+
+- **WHEN** 認証済みユーザーが `PATCH /tasks/{id}` に `{ "is_collapsed": true }` を送信する
+- **THEN** ステータスコード 200 と、`is_collapsed: true` の更新後タスクの JSON が返される
+
+#### Scenario: タスクの折り畳み状態を展開に更新する
+
+- **WHEN** 認証済みユーザーが `PATCH /tasks/{id}` に `{ "is_collapsed": false }` を送信する
+- **THEN** ステータスコード 200 と、`is_collapsed: false` の更新後タスクの JSON が返される
+
+#### Scenario: is_collapsed を指定せずに他フィールドを更新する
+
+- **WHEN** 認証済みユーザーが `PATCH /tasks/{id}` に `{ "title": "新タイトル" }` を送信する
+- **THEN** `is_collapsed` は既存値が保持される
 
 #### Scenario: description を null でクリアする
 
