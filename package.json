@@ -1,0 +1,6 @@
+{
+  "name": "task-tree-manager",
+  "devDependencies": {
+    "playwright": "^1.58.1"
+  }
+}
