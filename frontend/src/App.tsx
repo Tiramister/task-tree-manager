@@ -4,8 +4,10 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "./features/auth/authStore";
 import { LoginDialog } from "./features/auth/components/LoginDialog";
@@ -27,7 +29,8 @@ function App() {
 	const importSyncing = useTaskStore((s) => s.importSyncing);
 	const retryImportSync = useTaskStore((s) => s.retryImportSync);
 	const clearImportSyncError = useTaskStore((s) => s.clearImportSyncError);
-	const { username, loading, logout, checkAuth } = useAuthStore();
+	const { username, loading, logout, checkAuth, sessions, switchUser } =
+		useAuthStore();
 
 	useEffect(() => {
 		checkAuth();
@@ -60,6 +63,33 @@ function App() {
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
+										{sessions.map((session) => (
+											<DropdownMenuItem
+												key={session.sessionId}
+												onClick={() => {
+													if (session.username !== username) {
+														switchUser(session.sessionId);
+													}
+												}}
+											>
+												{session.username === username && (
+													<Check className="size-4" />
+												)}
+												<span
+													className={
+														session.username === username ? "" : "pl-6"
+													}
+												>
+													{session.username}
+												</span>
+											</DropdownMenuItem>
+										))}
+										{sessions.length > 0 && <DropdownMenuSeparator />}
+										<DropdownMenuItem
+											onClick={() => setLoginDialogOpen(true)}
+										>
+											別のアカウントでログイン
+										</DropdownMenuItem>
 										<DropdownMenuItem onClick={logout}>
 											ログアウト
 										</DropdownMenuItem>

@@ -31,6 +31,7 @@ func main() {
 
 	mux.HandleFunc("POST /login", handleLogin(pool))
 	mux.HandleFunc("POST /logout", handleLogout(pool))
+	mux.HandleFunc("POST /switch-session", handleSwitchSession(pool))
 	mux.HandleFunc("GET /me", handleMe(pool))
 
 	mux.HandleFunc("GET /tasks", handleGetTasks(pool))

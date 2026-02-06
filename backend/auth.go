@@ -46,7 +46,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 func authMiddleware(pool *pgxpool.Pool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 認証不要のパス
-		if r.URL.Path == "/health" || (r.URL.Path == "/login" && r.Method == http.MethodPost) {
+		if r.URL.Path == "/health" ||
+			(r.URL.Path == "/login" && r.Method == http.MethodPost) ||
+			(r.URL.Path == "/switch-session" && r.Method == http.MethodPost) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -134,6 +136,54 @@ func handleLogin(pool *pgxpool.Pool) http.HandlerFunc {
 			SameSite: http.SameSiteLaxMode,
 			Secure:   os.Getenv("COOKIE_SECURE") == "true",
 		})
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"session_id": sessionID})
+	}
+}
+
+type switchSessionRequest struct {
+	SessionID string `json:"session_id"`
+}
+
+func handleSwitchSession(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req switchSessionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if req.SessionID == "" {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+
+		// セッションが有効かどうかを検証
+		var userID string
+		var expiresAt time.Time
+		err := pool.QueryRow(r.Context(),
+			"SELECT user_id, expires_at FROM sessions WHERE id = $1", req.SessionID,
+		).Scan(&userID, &expiresAt)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if time.Now().After(expiresAt) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// 新しい HttpOnly Cookie を設定
+		http.SetCookie(w, &http.Cookie{
+			Name:     sessionCookieName,
+			Value:    req.SessionID,
+			Path:     "/",
+			Expires:  expiresAt,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			Secure:   os.Getenv("COOKIE_SECURE") == "true",
+		})
+
 		w.WriteHeader(http.StatusOK)
 	}
 }

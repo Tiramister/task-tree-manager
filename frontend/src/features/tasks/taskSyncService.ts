@@ -1,4 +1,5 @@
 import type { Task } from "@/types/task";
+import { useAuthStore } from "@/features/auth/authStore";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -80,7 +81,7 @@ function localTaskToUpdateRequest(
 }
 
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-	return fetch(`${API_BASE_URL}${path}`, {
+	const res = await fetch(`${API_BASE_URL}${path}`, {
 		...init,
 		credentials: "include",
 		headers: {
@@ -88,6 +89,12 @@ async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
 			...init?.headers,
 		},
 	});
+
+	if (res.status === 401) {
+		useAuthStore.getState().handleAuthError();
+	}
+
+	return res;
 }
 
 export async function fetchTasks(): Promise<Task[]> {

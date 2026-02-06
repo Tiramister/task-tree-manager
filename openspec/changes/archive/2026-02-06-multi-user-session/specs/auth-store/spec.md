@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: 認証ストアの状態管理
 フロントエンドは Zustand ストアで認証状態を管理しなければならない（SHALL）。ストアは現在のアクティブユーザー名（`string | null`）、ローディング状態（`boolean`）、およびログイン済みセッション一覧（`StoredSession[]`）を保持しなければならない（SHALL）。
 
@@ -49,6 +51,8 @@
 #### Scenario: アクティブセッション期限切れで他セッションあり
 - **WHEN** アクティブセッションが期限切れで、他の有効なセッションがある状態で起動する
 - **THEN** 期限切れセッションが削除され、次のセッションで認証が試行される
+
+## ADDED Requirements
 
 ### Requirement: ユーザー切り替えアクション
 認証ストアはユーザー切り替えアクションを提供しなければならない（SHALL）。切り替えアクションはセッションIDを受け取り、localStorage の `activeSessionId` を更新し、Cookie を書き換え、ストアのユーザー名を更新しなければならない（SHALL）。
