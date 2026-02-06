@@ -55,14 +55,28 @@ function localTaskToUpdateRequest(
 		>
 	>,
 ) {
-	return {
-		...(input.title != null && { title: input.title }),
-		...(input.description != null && { description: input.description }),
-		...(input.dueDate != null && { due_date: input.dueDate }),
-		...(input.notes != null && { notes: input.notes }),
-		...(input.status != null && { status: input.status }),
-		...(input.completedAt != null && { completed_at: input.completedAt }),
-	};
+	const request: Record<string, string | null> = {};
+
+	if ("title" in input && input.title !== undefined) {
+		request.title = input.title;
+	}
+	if ("status" in input && input.status !== undefined) {
+		request.status = input.status;
+	}
+	if ("description" in input) {
+		request.description = input.description ?? null;
+	}
+	if ("dueDate" in input) {
+		request.due_date = input.dueDate ?? null;
+	}
+	if ("notes" in input) {
+		request.notes = input.notes ?? null;
+	}
+	if ("completedAt" in input) {
+		request.completed_at = input.completedAt ?? null;
+	}
+
+	return request;
 }
 
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {

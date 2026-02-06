@@ -115,6 +115,10 @@
 
 taskSyncService はバックエンド API のレスポンス（snake_case）をフロントエンドのタスク型（camelCase）に変換しなければならない（SHALL）。また、フロントエンドのタスクデータをバックエンド API のリクエスト形式に変換しなければならない（SHALL）。ローカルタスクの一括アップロード時には、`status`、`completedAt` → `completed_at`、`createdAt` → `created_at` の変換も含めなければならない（SHALL）。
 
+更新リクエスト（`PATCH /tasks/{id}`）では、nullable フィールド（`description`、`dueDate`、`notes`、`completedAt`）について、次を満たさなければならない（SHALL）。
+- フィールドが更新 input に含まれ、値が未定義の場合は `null` に変換して送信する
+- フィールドが更新 input に含まれない場合はリクエストに含めない
+
 #### Scenario: バックエンドのレスポンスをフロントエンド形式に変換する
 
 - **WHEN** `GET /tasks` のレスポンスを受け取る
@@ -130,6 +134,21 @@ taskSyncService はバックエンド API のレスポンス（snake_case）を�
 - **WHEN** ローカルタスクの一括アップロードでタスクデータを変換する
 - **THEN** `title`、`sortOrder` → `sort_order`、`description`、`dueDate` → `due_date`、`notes`、`parentId` → `parent_id` に加え、`status`、`completedAt` → `completed_at`、`createdAt` → `created_at` も変換される
 
+#### Scenario: 更新リクエストで削除されたフィールドを null に変換する
+
+- **WHEN** `updateTaskOnServer` に `description` キー付きで未定義値が渡される
+- **THEN** `PATCH /tasks/{id}` のリクエストボディには `description: null` が含まれる
+
+#### Scenario: 更新リクエストで未指定フィールドを送信しない
+
+- **WHEN** `updateTaskOnServer` に `description` キーが含まれない更新入力が渡される
+- **THEN** `PATCH /tasks/{id}` のリクエストボディには `description` フィールドが含まれない
+
+#### Scenario: status 変更で完了日を自動削除した場合に null を送信する
+
+- **WHEN** `completed` から他ステータスへの更新で `completedAt` キー付き未定義値が渡される
+- **THEN** `PATCH /tasks/{id}` のリクエストボディには `completed_at: null` が含まれる
+
 ### Requirement: JSON インポート時にバックエンドタスクを全件上書きする
 
 ログイン済みユーザーが JSON インポートを確定した場合、システムはバックエンド上の当該ユーザータスクをインポートデータで全件上書きしなければならない（SHALL）。上書き後は `GET /tasks` の取得結果でローカル taskStore を確定し、最終状態を一致させなければならない（SHALL）。
@@ -141,4 +160,3 @@ taskSyncService はバックエンド API のレスポンス（snake_case）を�
 #### Scenario: JSON インポートでバックエンド上書きが失敗する
 - **WHEN** ログイン済みユーザーのインポート処理中にバックエンド更新が途中で失敗する
 - **THEN** 同期失敗がユーザーに通知され、再同期または再試行の導線が提供される
-

@@ -173,6 +173,10 @@ export const useTaskStore = create<TaskState>()(
 								task.status === "completed"
 							) {
 								delete updated.completedAt;
+								serverInput = {
+									...serverInput,
+									completedAt: undefined,
+								};
 							}
 						}
 

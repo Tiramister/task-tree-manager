@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -181,12 +182,53 @@ func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
 }
 
 type updateTaskRequest struct {
-	Title       *string `json:"title"`
-	Description *string `json:"description"`
-	DueDate     *string `json:"due_date"`
-	Notes       *string `json:"notes"`
-	Status      *string `json:"status"`
-	CompletedAt *string `json:"completed_at"`
+	Title       *string          `json:"title"`
+	Description *json.RawMessage `json:"description"`
+	DueDate     *json.RawMessage `json:"due_date"`
+	Notes       *json.RawMessage `json:"notes"`
+	Status      *string          `json:"status"`
+	CompletedAt *json.RawMessage `json:"completed_at"`
+}
+
+func decodeNullableString(raw *json.RawMessage) (present bool, value *string, err error) {
+	if raw == nil {
+		return false, nil, nil
+	}
+
+	trimmed := bytes.TrimSpace(*raw)
+	if bytes.Equal(trimmed, []byte("null")) {
+		return true, nil, nil
+	}
+
+	var decoded string
+	if err := json.Unmarshal(trimmed, &decoded); err != nil {
+		return true, nil, err
+	}
+
+	return true, &decoded, nil
+}
+
+func decodeNullableTime(raw *json.RawMessage) (present bool, value *time.Time, err error) {
+	if raw == nil {
+		return false, nil, nil
+	}
+
+	trimmed := bytes.TrimSpace(*raw)
+	if bytes.Equal(trimmed, []byte("null")) {
+		return true, nil, nil
+	}
+
+	var decoded string
+	if err := json.Unmarshal(trimmed, &decoded); err != nil {
+		return true, nil, err
+	}
+
+	parsed, err := time.Parse(time.RFC3339, decoded)
+	if err != nil {
+		return true, nil, err
+	}
+
+	return true, &parsed, nil
 }
 
 func handleUpdateTask(pool *pgxpool.Pool) http.HandlerFunc {
@@ -215,30 +257,32 @@ func handleUpdateTask(pool *pgxpool.Pool) http.HandlerFunc {
 		if req.Title != nil {
 			existing.Title = *req.Title
 		}
-		if req.Description != nil {
-			existing.Description = req.Description
+		if present, value, err := decodeNullableString(req.Description); err != nil {
+			http.Error(w, "Bad Request: invalid description format", http.StatusBadRequest)
+			return
+		} else if present {
+			existing.Description = value
 		}
-		if req.Notes != nil {
-			existing.Notes = req.Notes
+		if present, value, err := decodeNullableString(req.Notes); err != nil {
+			http.Error(w, "Bad Request: invalid notes format", http.StatusBadRequest)
+			return
+		} else if present {
+			existing.Notes = value
 		}
 		if req.Status != nil {
 			existing.Status = *req.Status
 		}
-		if req.DueDate != nil {
-			parsed, err := time.Parse(time.RFC3339, *req.DueDate)
-			if err != nil {
-				http.Error(w, "Bad Request: invalid due_date format", http.StatusBadRequest)
-				return
-			}
-			existing.DueDate = &parsed
+		if present, value, err := decodeNullableTime(req.DueDate); err != nil {
+			http.Error(w, "Bad Request: invalid due_date format", http.StatusBadRequest)
+			return
+		} else if present {
+			existing.DueDate = value
 		}
-		if req.CompletedAt != nil {
-			parsed, err := time.Parse(time.RFC3339, *req.CompletedAt)
-			if err != nil {
-				http.Error(w, "Bad Request: invalid completed_at format", http.StatusBadRequest)
-				return
-			}
-			existing.CompletedAt = &parsed
+		if present, value, err := decodeNullableTime(req.CompletedAt); err != nil {
+			http.Error(w, "Bad Request: invalid completed_at format", http.StatusBadRequest)
+			return
+		} else if present {
+			existing.CompletedAt = value
 		}
 
 		var t task
