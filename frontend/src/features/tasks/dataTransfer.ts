@@ -47,7 +47,14 @@ export function exportToFile(jsonString: string): void {
 	URL.revokeObjectURL(url);
 }
 
-export function importFromFile(onImport: (tasks: Task[]) => void): void {
+interface ImportFromFileOptions {
+	isLoggedIn: boolean;
+}
+
+export function importFromFile(
+	onImport: (tasks: Task[]) => void,
+	options?: ImportFromFileOptions,
+): void {
 	const input = document.createElement("input");
 	input.type = "file";
 	input.accept = ".json";
@@ -55,11 +62,12 @@ export function importFromFile(onImport: (tasks: Task[]) => void): void {
 		const file = input.files?.[0];
 		if (!file) return;
 
-		if (
-			!window.confirm(
-				"インポートすると既存のタスクデータがすべて置き換えられます。続行しますか？",
-			)
-		) {
+		const isLoggedIn = options?.isLoggedIn ?? false;
+		const confirmMessage = isLoggedIn
+			? "インポートすると既存のタスクデータがすべて置き換えられ、バックエンド上のタスクもインポート内容で上書きされます。続行しますか？"
+			: "インポートすると既存のタスクデータがすべて置き換えられます。続行しますか？";
+
+		if (!window.confirm(confirmMessage)) {
 			return;
 		}
 

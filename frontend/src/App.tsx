@@ -23,6 +23,10 @@ function App() {
 	const menuRef = useRef<HTMLDivElement>(null);
 	const exportTasks = useTaskStore((s) => s.exportTasks);
 	const importTasks = useTaskStore((s) => s.importTasks);
+	const importSyncError = useTaskStore((s) => s.importSyncError);
+	const importSyncing = useTaskStore((s) => s.importSyncing);
+	const retryImportSync = useTaskStore((s) => s.retryImportSync);
+	const clearImportSyncError = useTaskStore((s) => s.clearImportSyncError);
 	const { username, loading, logout, checkAuth } = useAuthStore();
 
 	useEffect(() => {
@@ -36,7 +40,7 @@ function App() {
 
 	const handleImport = () => {
 		setMenuOpen(false);
-		importFromFile(importTasks);
+		importFromFile(importTasks, { isLoggedIn: username !== null });
 	};
 
 	return (
@@ -153,6 +157,29 @@ function App() {
 							履歴
 						</button>
 					</div>
+					{importSyncError && (
+						<div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+							<p>{importSyncError}</p>
+							<div className="mt-2 flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => void retryImportSync()}
+									disabled={importSyncing}
+								>
+									{importSyncing ? "再試行中..." : "再試行"}
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={clearImportSyncError}
+									disabled={importSyncing}
+								>
+									閉じる
+								</Button>
+							</div>
+						</div>
+					)}
 				</div>
 			</header>
 			<div className="container mx-auto px-2 py-6 sm:px-4 sm:max-w-3xl">

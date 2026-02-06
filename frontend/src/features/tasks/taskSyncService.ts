@@ -123,11 +123,7 @@ export async function reorderTaskOnServer(
 	});
 }
 
-export async function uploadLocalTasks(tasks: Task[]): Promise<void> {
-	// 親タスク（parentId なし）から先に保存する
-	const idMap = new Map<string, string>();
-
-	// トポロジカル順にソート: 親がないものを先に、親があるものは親が処理済みになるまで待つ
+function orderTasksForCreation(tasks: Task[]): Task[] {
 	const sorted: Task[] = [];
 	const remaining = [...tasks];
 	const processed = new Set<string>();
@@ -144,8 +140,9 @@ export async function uploadLocalTasks(tasks: Task[]): Promise<void> {
 			}
 		}
 
-		// 循環参照防止
-		if (batch.length === 0) break;
+		if (batch.length === 0) {
+			throw new Error("親子関係を解決できないタスクがあるため同期できません");
+		}
 
 		sorted.push(...batch);
 		for (const t of batch) {
@@ -155,21 +152,83 @@ export async function uploadLocalTasks(tasks: Task[]): Promise<void> {
 		remaining.push(...nextRemaining);
 	}
 
+	return sorted;
+}
+
+function orderTasksForDeletion(tasks: Task[]): Task[] {
+	const sorted: Task[] = [];
+	const remaining = [...tasks];
+
+	while (remaining.length > 0) {
+		const leaves = remaining.filter(
+			(task) => !remaining.some((candidate) => candidate.parentId === task.id),
+		);
+
+		if (leaves.length === 0) {
+			throw new Error("削除順を決定できないタスク構造です");
+		}
+
+		sorted.push(...leaves);
+		const leafIds = new Set(leaves.map((task) => task.id));
+		for (let i = remaining.length - 1; i >= 0; i--) {
+			if (leafIds.has(remaining[i].id)) {
+				remaining.splice(i, 1);
+			}
+		}
+	}
+
+	return sorted;
+}
+
+async function createTasksWithMapping(tasks: Task[]): Promise<void> {
+	const idMap = new Map<string, string>();
+	const sorted = orderTasksForCreation(tasks);
+
 	for (const task of sorted) {
 		const parentIdOverride = task.parentId
 			? idMap.get(task.parentId)
 			: undefined;
+		if (task.parentId && !parentIdOverride) {
+			throw new Error("親タスクの ID 変換に失敗しました");
+		}
 
 		const res = await apiFetch("/tasks", {
 			method: "POST",
 			body: JSON.stringify(localTaskToCreateRequest(task, parentIdOverride)),
 		});
 
-		if (res.ok) {
-			const created: ServerTask = await res.json();
-			idMap.set(task.id, created.id);
+		if (!res.ok) {
+			throw new Error(
+				`タスク作成に失敗しました (status: ${res.status} ${res.statusText})`,
+			);
+		}
+
+		const created: ServerTask = await res.json();
+		idMap.set(task.id, created.id);
+	}
+}
+
+export async function uploadLocalTasks(tasks: Task[]): Promise<void> {
+	await createTasksWithMapping(tasks);
+}
+
+export async function overwriteTasksFromImport(tasks: Task[]): Promise<Task[]> {
+	const remoteTasks = await fetchTasks();
+	const deleteOrder = orderTasksForDeletion(remoteTasks);
+
+	for (const task of deleteOrder) {
+		const res = await apiFetch(`/tasks/${task.id}`, {
+			method: "DELETE",
+		});
+		if (!res.ok) {
+			throw new Error(
+				`既存タスク削除に失敗しました (status: ${res.status} ${res.statusText})`,
+			);
 		}
 	}
+
+	await createTasksWithMapping(tasks);
+	return fetchTasks();
 }
 
 export async function syncOnLogin(

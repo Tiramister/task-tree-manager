@@ -6,6 +6,7 @@ import { sampleTasks } from "./sampleData";
 import {
 	createTaskOnServer,
 	deleteTaskOnServer,
+	overwriteTasksFromImport,
 	reorderTaskOnServer,
 	updateTaskOnServer,
 } from "./taskSyncService";
@@ -18,6 +19,8 @@ interface CompletedGroup {
 interface TaskState {
 	tasks: Task[];
 	collapsedIds: string[];
+	importSyncError: string | null;
+	importSyncing: boolean;
 	addTask: (input: CreateTaskInput) => Task;
 	updateTask: (id: string, input: UpdateTaskInput) => void;
 	deleteTask: (id: string) => void;
@@ -27,6 +30,8 @@ interface TaskState {
 	getAncestorIds: (taskIds: string[]) => Set<string>;
 	exportTasks: () => string;
 	importTasks: (tasks: Task[]) => void;
+	retryImportSync: () => Promise<void>;
+	clearImportSyncError: () => void;
 	syncFromServer: (tasks: Task[]) => void;
 	toggleCollapse: (id: string) => void;
 	collapseAll: (ids: string[]) => void;
@@ -42,6 +47,8 @@ export const useTaskStore = create<TaskState>()(
 		(set, get) => ({
 			tasks: sampleTasks,
 			collapsedIds: [],
+			importSyncError: null,
+			importSyncing: false,
 
 			addTask: (input) => {
 				const siblings = get().tasks.filter(
@@ -200,7 +207,42 @@ export const useTaskStore = create<TaskState>()(
 			},
 
 			importTasks: (tasks) => {
-				set({ tasks });
+				set({ tasks, importSyncError: null });
+				if (isLoggedIn()) {
+					void get().retryImportSync();
+				}
+			},
+
+			retryImportSync: async () => {
+				if (!isLoggedIn()) {
+					return;
+				}
+
+				const tasks = get().tasks;
+				set({ importSyncing: true, importSyncError: null });
+
+				try {
+					const syncedTasks = await overwriteTasksFromImport(tasks);
+					set({
+						tasks: syncedTasks,
+						importSyncing: false,
+						importSyncError: null,
+					});
+				} catch (error) {
+					console.error("JSON インポート後のバックエンド同期に失敗しました", {
+						error,
+						taskCount: tasks.length,
+					});
+					set({
+						importSyncing: false,
+						importSyncError:
+							"バックエンドとの同期に失敗しました。インポート結果はローカルに保持されています。再試行してください。",
+					});
+				}
+			},
+
+			clearImportSyncError: () => {
+				set({ importSyncError: null });
 			},
 
 			syncFromServer: (tasks) => {
