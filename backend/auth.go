@@ -18,7 +18,7 @@ type contextKey string
 const userIDKey contextKey = "userID"
 
 const sessionCookieName = "session_id"
-const sessionDuration = 24 * time.Hour
+const sessionDuration = 30 * 24 * time.Hour
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
