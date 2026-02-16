@@ -190,21 +190,21 @@ func handleCreateTask(pool *pgxpool.Pool) http.HandlerFunc {
 }
 
 type updateTaskRequest struct {
-	Title       *string          `json:"title"`
-	Description *json.RawMessage `json:"description"`
-	DueDate     *json.RawMessage `json:"due_date"`
-	Notes       *json.RawMessage `json:"notes"`
-	Status      *string          `json:"status"`
-	CompletedAt *json.RawMessage `json:"completed_at"`
-	IsCollapsed *bool            `json:"is_collapsed"`
+	Title       *string         `json:"title"`
+	Description json.RawMessage `json:"description"`
+	DueDate     json.RawMessage `json:"due_date"`
+	Notes       json.RawMessage `json:"notes"`
+	Status      *string         `json:"status"`
+	CompletedAt json.RawMessage `json:"completed_at"`
+	IsCollapsed *bool           `json:"is_collapsed"`
 }
 
-func decodeNullableString(raw *json.RawMessage) (present bool, value *string, err error) {
-	if raw == nil {
+func decodeNullableString(raw json.RawMessage) (present bool, value *string, err error) {
+	if len(raw) == 0 {
 		return false, nil, nil
 	}
 
-	trimmed := bytes.TrimSpace(*raw)
+	trimmed := bytes.TrimSpace(raw)
 	if bytes.Equal(trimmed, []byte("null")) {
 		return true, nil, nil
 	}
@@ -217,12 +217,12 @@ func decodeNullableString(raw *json.RawMessage) (present bool, value *string, er
 	return true, &decoded, nil
 }
 
-func decodeNullableTime(raw *json.RawMessage) (present bool, value *time.Time, err error) {
-	if raw == nil {
+func decodeNullableTime(raw json.RawMessage) (present bool, value *time.Time, err error) {
+	if len(raw) == 0 {
 		return false, nil, nil
 	}
 
-	trimmed := bytes.TrimSpace(*raw)
+	trimmed := bytes.TrimSpace(raw)
 	if bytes.Equal(trimmed, []byte("null")) {
 		return true, nil, nil
 	}
